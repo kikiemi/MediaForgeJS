@@ -1,1 +1,0 @@
-export declare function normalizeVideoPacket(data: Uint8Array, codec: string, codecConfig: Uint8Array | undefined, nalUnitFormat: 'annexb' | 'avcc' | undefined, proResHeaderless?: boolean): Uint8Array;
