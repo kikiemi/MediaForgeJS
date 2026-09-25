@@ -1,0 +1,355 @@
+{
+  "schema": 2,
+  "version": "5.4.0",
+  "packages": [
+    {
+      "name": "mediaforgejs",
+      "version": "5.4.0",
+      "filename": "mediaforgejs-5.4.0.tgz",
+      "bytes": 1932021,
+      "files": 598,
+      "sha256": "49939060e9f888690f04499fca8ffaed13b2cd851f605e2a5993c3dc9c61f7b4",
+      "integrity": "sha512-twClWGbiTDXE3DgRuL5NgCWW1n+TjztEcgqhEBfH2CdpWg9XY4pokTb1Pm72RIcxhLuTz6A2ljLAeKjF25pMnw==",
+      "license": "WTFPL",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "bytes": 483,
+          "sha256": "96f17857f3eb28a7d93dad930bc099a3cb65a9a2afb37069bfd1ba5ec5964389"
+        }
+      ],
+      "dependencies": {},
+      "optionalDependencies": {},
+      "peerDependencies": {},
+      "peerDependenciesMeta": {}
+    },
+    {
+      "name": "mediaforgejs-audio",
+      "version": "5.4.0",
+      "filename": "mediaforgejs-audio-5.4.0.tgz",
+      "bytes": 1611,
+      "files": 17,
+      "sha256": "0f2a520aaf12be98a993387e1eda0be5349e1e021fefb01f96ccf2cac9263ee6",
+      "integrity": "sha512-5U0SP7C1/5Ic0UU2+OZ+RpwPrZvZx9pjuYCuaNleqjRr53iWHZtRIjHccpSdRIoIcOaPyRIkzLOKDbQcH9fwVg==",
+      "license": "WTFPL",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "bytes": 483,
+          "sha256": "96f17857f3eb28a7d93dad930bc099a3cb65a9a2afb37069bfd1ba5ec5964389"
+        }
+      ],
+      "dependencies": {},
+      "optionalDependencies": {},
+      "peerDependencies": {
+        "mediaforgejs": "^5.4.0"
+      },
+      "peerDependenciesMeta": {}
+    },
+    {
+      "name": "mediaforgejs-drm",
+      "version": "5.4.0",
+      "filename": "mediaforgejs-drm-5.4.0.tgz",
+      "bytes": 1467,
+      "files": 13,
+      "sha256": "20011f80c837c8c5ee3cd2c3546a77965d29a436dadce8f31381bdea9078b68b",
+      "integrity": "sha512-dUysjIc1XP3fyquZyLDyE9xMqTbqWPdhYEmk2BN0FDCY3R+HlxElP0JFPRYQcSEViYIvIL+3kfp649plixQEsA==",
+      "license": "WTFPL",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "bytes": 483,
+          "sha256": "96f17857f3eb28a7d93dad930bc099a3cb65a9a2afb37069bfd1ba5ec5964389"
+        }
+      ],
+      "dependencies": {},
+      "optionalDependencies": {},
+      "peerDependencies": {
+        "mediaforgejs": "^5.4.0"
+      },
+      "peerDependenciesMeta": {}
+    },
+    {
+      "name": "mediaforgejs-ffmpeg",
+      "version": "5.4.0",
+      "filename": "mediaforgejs-ffmpeg-5.4.0.tgz",
+      "bytes": 1148,
+      "files": 5,
+      "sha256": "90dd944dd3d153fedf479028c9daf4dff691577756977fcabbf7e1025c16a80e",
+      "integrity": "sha512-ZU6L/WPh2aVJEl4gvuMCNJdNPSpdtKjkWobeC22XguCJwjzlhYuGjCi8Kmll9Q5W76bIND4r2rUsg4QUBsAxYA==",
+      "license": "WTFPL",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "bytes": 483,
+          "sha256": "96f17857f3eb28a7d93dad930bc099a3cb65a9a2afb37069bfd1ba5ec5964389"
+        }
+      ],
+      "dependencies": {},
+      "optionalDependencies": {},
+      "peerDependencies": {
+        "mediaforgejs": "^5.4.0"
+      },
+      "peerDependenciesMeta": {}
+    },
+    {
+      "name": "mediaforgejs-prores",
+      "version": "5.4.0",
+      "filename": "mediaforgejs-prores-5.4.0.tgz",
+      "bytes": 20830,
+      "files": 11,
+      "sha256": "b7f81dfae5efee29d3c731841d14e68021595431b40479d4bd295d62cd01ac51",
+      "integrity": "sha512-xdfDnMIaJxWVrPPH+GqnR7YvI78HN6qREEKKR3sr6oKk8z7ZpR1CyRz+bnQmEGb89hFgKIqoXdYunRdhc9Ti0Q==",
+      "license": "(WTFPL AND LGPL-2.1-or-later)",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "bytes": 483,
+          "sha256": "96f17857f3eb28a7d93dad930bc099a3cb65a9a2afb37069bfd1ba5ec5964389"
+        },
+        {
+          "path": "LICENSE-LGPL-2.1",
+          "bytes": 26517,
+          "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30"
+        },
+        {
+          "path": "THIRD-PARTY-NOTICES.md",
+          "bytes": 1828,
+          "sha256": "de829f7b13cde6a184ba6057aa23dc37eaf429a70fd6824345a40ca94ecc1020"
+        }
+      ],
+      "dependencies": {
+        "prores-wasm-encoder": "1.0.0",
+        "turbores": "1.2.2"
+      },
+      "optionalDependencies": {},
+      "peerDependencies": {
+        "mediaforgejs": "^5.4.0"
+      },
+      "peerDependenciesMeta": {}
+    },
+    {
+      "name": "mediaforgejs-prores-raw",
+      "version": "5.4.0",
+      "filename": "mediaforgejs-prores-raw-5.4.0.tgz",
+      "bytes": 28466,
+      "files": 12,
+      "sha256": "54dc57a24663c7d73ea52f467edce350f0e9ced0981ec753cd5429e49c58445c",
+      "integrity": "sha512-12E7TmUqOE9WFOnQBxLhzBraxmXqRnXTErTgyeeV2v0Har2OGFIdhiYd3il04cskdE13uvyq8BUM7f1YBmvMAQ==",
+      "license": "LGPL-2.1-or-later",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "bytes": 26530,
+          "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+        },
+        {
+          "path": "NOTICE",
+          "bytes": 3137,
+          "sha256": "a8ed18438a7b67bfdec4fd8247b5ffcd1dad207139055a8b53fc5274af84df09"
+        }
+      ],
+      "dependencies": {},
+      "optionalDependencies": {},
+      "peerDependencies": {},
+      "peerDependenciesMeta": {}
+    },
+    {
+      "name": "mediaforgejs-streaming",
+      "version": "5.4.0",
+      "filename": "mediaforgejs-streaming-5.4.0.tgz",
+      "bytes": 1571,
+      "files": 17,
+      "sha256": "bc84afa66e2353f1011b0dcad0342f3d4b9159453a3aa31cb228b358da4aa3de",
+      "integrity": "sha512-DHsOm2WztRzkAweT7TxdreBRH/fUB4P94ydvxG0YwOTzT73yvdgOWhHAGP7CG9TKkWFQPDZNjPnE4Htoo0ynrg==",
+      "license": "WTFPL",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "bytes": 483,
+          "sha256": "96f17857f3eb28a7d93dad930bc099a3cb65a9a2afb37069bfd1ba5ec5964389"
+        }
+      ],
+      "dependencies": {},
+      "optionalDependencies": {},
+      "peerDependencies": {
+        "mediaforgejs": "^5.4.0"
+      },
+      "peerDependenciesMeta": {}
+    }
+  ],
+  "offline": {
+    "installer": "offline/install.mjs",
+    "dependencies": [
+      {
+        "name": "@rollup/rollup-linux-x64-gnu",
+        "version": "4.62.1",
+        "filename": "offline/dependencies/rollup-rollup-linux-x64-gnu-4.62.1.tgz",
+        "bytes": 907333,
+        "files": 3,
+        "sha256": "344473e97b15d3e70371516b5f9eb1e47185a247a77f4de63c249ae2a78fdb5f",
+        "integrity": "sha512-nVQGk/jStQc2V4rrkI+vPD2J+85boKqS4R4nOdPhc3eWw0kyW/b+AYRGoH8qo057XSVqaTx13AliH5qPeLTtgQ==",
+        "license": "MIT",
+        "licenseFiles": [],
+        "dependencies": {},
+        "optionalDependencies": {},
+        "peerDependencies": {},
+        "peerDependenciesMeta": {},
+        "os": [
+          "linux"
+        ],
+        "cpu": [
+          "x64"
+        ],
+        "libc": [
+          "glibc"
+        ],
+        "source": "https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.62.1.tgz",
+        "sourceIntegrity": "sha512-nVQGk/jStQc2V4rrkI+vPD2J+85boKqS4R4nOdPhc3eWw0kyW/b+AYRGoH8qo057XSVqaTx13AliH5qPeLTtgQ==",
+        "lockfilePath": "node_modules/@rollup/rollup-linux-x64-gnu"
+      },
+      {
+        "name": "prores-wasm-encoder",
+        "version": "1.0.0",
+        "filename": "offline/dependencies/prores-wasm-encoder-1.0.0.tgz",
+        "bytes": 341506,
+        "files": 26,
+        "sha256": "35c5ab7fc10c47210cfe9e33424a56723f5901e2e4b519b3e0a74f0496f78097",
+        "integrity": "sha512-jLKSiesVfZsamAlDomgxPFk/r90JFrDIemJDf+FNjBiCU3w6e81h61OkBM0YYHjpHlfthfY4VaTw9y/kvBMuJA==",
+        "license": "LGPL-2.1-or-later",
+        "licenseFiles": [
+          {
+            "path": "LICENSE",
+            "bytes": 26517,
+            "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30"
+          }
+        ],
+        "dependencies": {},
+        "optionalDependencies": {},
+        "peerDependencies": {
+          "mediabunny": ">=1.0.0"
+        },
+        "peerDependenciesMeta": {
+          "mediabunny": {
+            "optional": true
+          }
+        },
+        "source": "https://registry.npmjs.org/prores-wasm-encoder/-/prores-wasm-encoder-1.0.0.tgz",
+        "sourceIntegrity": "sha512-jLKSiesVfZsamAlDomgxPFk/r90JFrDIemJDf+FNjBiCU3w6e81h61OkBM0YYHjpHlfthfY4VaTw9y/kvBMuJA==",
+        "lockfilePath": "node_modules/prores-wasm-encoder"
+      },
+      {
+        "name": "turbores",
+        "version": "1.2.2",
+        "filename": "offline/dependencies/turbores-1.2.2.tgz",
+        "bytes": 110599,
+        "files": 6,
+        "sha256": "f2294d86209d2600867f728db601fffc7878976f617784321b6bf55671903f88",
+        "integrity": "sha512-dTSKeZ6/BgBKz9T5goMS5ZMcqOiNYO1MbvresYGfWXEF5ZWK+yIZDxNjh86bRj1mnEzhtdsMOJ5GBi8b3Azcpg==",
+        "license": "MPL-2.0",
+        "licenseFiles": [
+          {
+            "path": "LICENSE",
+            "bytes": 16726,
+            "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+          }
+        ],
+        "dependencies": {},
+        "optionalDependencies": {
+          "@rollup/rollup-linux-x64-gnu": "4.62.1"
+        },
+        "peerDependencies": {},
+        "peerDependenciesMeta": {},
+        "source": "https://registry.npmjs.org/turbores/-/turbores-1.2.2.tgz",
+        "sourceIntegrity": "sha512-dTSKeZ6/BgBKz9T5goMS5ZMcqOiNYO1MbvresYGfWXEF5ZWK+yIZDxNjh86bRj1mnEzhtdsMOJ5GBi8b3Azcpg==",
+        "lockfilePath": "node_modules/turbores"
+      }
+    ],
+    "toolchain": [
+      {
+        "name": "typescript",
+        "version": "5.9.3",
+        "filename": "offline/toolchain/typescript-5.9.3.tgz",
+        "bytes": 4377468,
+        "files": 132,
+        "sha256": "10e108c9cf7d5f2879053dff18515fb405abf2ccef63eaaf017d9c571687a1d3",
+        "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+        "license": "Apache-2.0",
+        "licenseFiles": [
+          {
+            "path": "LICENSE.txt",
+            "bytes": 9197,
+            "sha256": "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47"
+          },
+          {
+            "path": "ThirdPartyNoticeText.txt",
+            "bytes": 37824,
+            "sha256": "1af3c68039c57e539422da82a4faada506ce6d0ea6f90e0b699d02dbcdb7a90c"
+          }
+        ],
+        "dependencies": {},
+        "optionalDependencies": {},
+        "peerDependencies": {},
+        "peerDependenciesMeta": {},
+        "source": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "sourceIntegrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+        "lockfilePath": "node_modules/typescript"
+      },
+      {
+        "name": "prettier",
+        "version": "3.9.9",
+        "filename": "offline/toolchain/prettier-3.9.9.tgz",
+        "bytes": 2801547,
+        "files": 56,
+        "sha256": "c3b162d30c45126873cc6338a539383e92120a390d10de78f373f42c2045b338",
+        "integrity": "sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==",
+        "license": "MIT",
+        "licenseFiles": [
+          {
+            "path": "LICENSE",
+            "bytes": 1065,
+            "sha256": "b0f2417199889f1c0d28ec4e0244eacf1a15de5819d61f641dd7d8f45153ac9c"
+          },
+          {
+            "path": "THIRD-PARTY-NOTICES.md",
+            "bytes": 362597,
+            "sha256": "aaf6032babb49d6e5601ab06f315d6d6bab605cb4672f03e9972ff3c80232cdc"
+          }
+        ],
+        "dependencies": {},
+        "optionalDependencies": {},
+        "peerDependencies": {},
+        "peerDependenciesMeta": {},
+        "source": "https://registry.npmjs.org/prettier/-/prettier-3.9.9.tgz",
+        "sourceIntegrity": "sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==",
+        "lockfilePath": "node_modules/prettier"
+      }
+    ],
+    "optionalPeers": [
+      {
+        "from": "prores-wasm-encoder",
+        "name": "mediabunny",
+        "range": ">=1.0.0",
+        "kind": "optional-peer"
+      }
+    ],
+    "files": [
+      {
+        "path": "offline/install.mjs",
+        "bytes": 20007,
+        "sha256": "2fd328861b434d2ca8f9ef85c6f537e0ce67fbe39e23d683711537a60eb1d577"
+      },
+      {
+        "path": "offline/release-network-guard.cjs",
+        "bytes": 1707,
+        "sha256": "4c31984499d2ab234b71ed21e9aa17d56d58a4d8121dcd916a7ed464b34db538"
+      },
+      {
+        "path": "offline/browser.mjs",
+        "bytes": 6857,
+        "sha256": "746f1803b1c402c11e8fd2e6e1b6c60698f0dd0721fbb4bbb501a944bafd2a5d"
+      }
+    ],
+    "compiler": "TypeScript and Prettier are included separately under offline/toolchain; neither is a runtime dependency"
+  }
+}

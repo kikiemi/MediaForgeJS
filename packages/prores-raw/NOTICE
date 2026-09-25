@@ -1,0 +1,59 @@
+MediaForgeJS optional ProRes RAW decoder
+License: GNU Lesser General Public License, version 2.1 or (at your option)
+any later version. See LICENSE for the complete license text.
+
+This package contains a JavaScript adaptation of portions of FFmpeg:
+
+libavcodec/prores_raw.c
+Copyright (c) 2023-2025 Paul B Mahol
+Copyright (c) 2025 Lynne
+
+libavcodec/proresdsp.c and libavcodec/proresdata.c
+Copyright (c) 2010-2011 Maxim Poliakovski
+
+libavcodec/simple_idct_template.c
+Copyright (c) 2001 Michael Niedermayer <michaelni@gmx.at>
+Based upon some commented-out C code from mpeg2dec (idct_mmx.c written by
+Aaron Holtzman <aholtzma@ess.engr.uvic.ca>).
+
+Source repository: https://github.com/FFmpeg/FFmpeg
+Pinned source revision: faa7c882cb86334aa962340451e087c30e063d31
+Source URL prefix:
+https://github.com/FFmpeg/FFmpeg/blob/faa7c882cb86334aa962340451e087c30e063d31/
+
+Source SHA-256 checksums:
+3368b5ac870c5628c32305103b5389415c836a90db4d762c7f7ed9fa08451b26  libavcodec/prores_raw.c
+218d8eb20ff8fb6cba534a4e3cb96180c38de216f498fcfdf6029ccb0e14f542  libavcodec/proresdsp.c
+0f594d7b1cfd2b09f3a4bfdb318b03c1ec687caf4d5a61598cc994a7326d451a  libavcodec/simple_idct_template.c
+5a1a2aea69016cd903ae62fabb832c3dab53f9f6e619a8180b819f71b4b0eee9  libavcodec/proresdata.c
+
+The unmodified reference files above are included in upstream/. Their original
+copyright and license notices remain intact. The preferred source form of the
+modified implementation is index.js, idct.js, and packet.js in this package;
+they are directly executable ECMAScript modules, not generated or minified
+artifacts. No native binary, embedded FFmpeg runtime, or external executable
+is distributed or required by this package.
+
+Modifications, 2026: ported packet entropy decoding, scan tables, integer IDCT,
+and linearization to JavaScript typed arrays; added input and allocation limits,
+explicit format errors, bounded tile reads/writes, cancellation, independent
+packet ownership for async decoding, and a typed Bayer/metadata API. The packet
+parser and public API are original implementations. The reference library's
+threading, hardware acceleration, frame allocation, and libavcodec API are not
+included in the executable JavaScript implementation.
+
+This optional package is LGPL-2.1-or-later throughout. Its license does not
+relicense the separately distributed MediaForgeJS core. The core does not
+statically incorporate or automatically import this optional decoder.
+
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option)
+any later version.
+
+This library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+details. You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software Foundation,
+Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.

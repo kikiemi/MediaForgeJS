@@ -1,0 +1,106 @@
+import type { Sink } from '../types/io.js';
+import type { MuxerConfig, OutputMuxer } from '../types/container.js';
+import type { EncodedChunk, MatroskaPassThrough } from '../types/media.js';
+/** Copy preflight requires decoder configuration; encoders may supply it with their first packet. */
+export declare function validateMatroskaCodecConfigs(cfg: Pick<MuxerConfig, 'video' | 'audio' | 'extraAudioTracks' | 'extraVideoTracks'>): void;
+/** WebM/MKV muxer (incremental clusters, SeekHead/Cues, DiscardPadding, subtitles, chapters/attachments pass-through). */
+export declare class WebMMuxer implements OutputMuxer {
+    private readonly trackUids;
+    private readonly trackNumbers;
+    private readonly subtitleNumbers;
+    private readonly extraAudioIndices;
+    private readonly titledTracks;
+    private readonly pcmFormats;
+    private readonly timeUnitsPerSecond;
+    private readonly display;
+    private readonly extraVideoDisplays;
+    private validAudioSamples;
+    private audioPrimingSamples;
+    private audioCodecDelaySamples;
+    private audioPrimingConfigured;
+    private audioPrimingPresentationTimestamps;
+    private audioLeadingDiscardEnabled;
+    private audioTimelineShiftSeconds;
+    private audioCodecDelayExplicit;
+    setValidSamples(samples: number): void;
+    /** Configure a codec-independent Matroska presentation window. */
+    setAudioPriming(primingSamples: number, validSamples: number, presentationTimestamps?: boolean, discardLeadingSamples?: boolean, codecDelaySamples?: number): void;
+    private finalizedFlag;
+    private sawVideoChunk;
+    private sawAudioChunk;
+    private readonly sink;
+    private readonly cfg;
+    private readonly packets;
+    private videoConfig?;
+    private audioConfig?;
+    private readonly extraAudioConfigs;
+    private readonly extraVideoConfigs;
+    private readonly seenExtraVideo;
+    private readonly seenExtraAudio;
+    private readonly extraEncodedAudioSamples;
+    private readonly extraLeadingDiscardWritten;
+    private readonly extraAudioTimelineShiftSeconds;
+    private passThrough;
+    private readonly subtitlePackets;
+    private streamingHeaderWritten;
+    private pendingPackets;
+    private pendingStartTicks;
+    private streamEncodedAudioSamples;
+    private audioPacketCount;
+    private leadingAudioDiscardWritten;
+    private readonly lastBlockTimestamps;
+    constructor(cfg: MuxerConfig, sink: Sink);
+    setMatroskaPassThrough(pass: MatroskaPassThrough): void;
+    setAudioCodecConfig(codecConfig: Uint8Array): void;
+    addSubtitleChunk(chunk: EncodedChunk, trackIndex?: number): void;
+    private primaryAudioTrackNumber;
+    private isPrimaryAudio;
+    private extraAudioTrackNumber;
+    private subtitleTrackNumber;
+    private extraVideoTrackNumber;
+    private get streaming();
+    /** Appends one encoded video chunk; `codecConfig` on the first call carries the decoder configuration record. */
+    addVideoChunk(chunk: EncodedChunk, codecConfig?: Uint8Array): void;
+    addExtraVideoChunk(index: number, chunk: EncodedChunk, codecConfig?: Uint8Array): void;
+    private addVideoPacket;
+    /** Copied secondary audio tracks, same contract as MP4Muxer. */
+    addExtraAudioChunk(index: number, chunk: EncodedChunk, codecCfg?: Uint8Array): void;
+    /** Appends one encoded audio chunk; `codecConfig` on the first call carries decoder configuration where the container stores it. */
+    addAudioChunk(chunk: EncodedChunk, codecConfig?: Uint8Array): void;
+    private validatePcmChunk;
+    private audioTimingRate;
+    private audioTimingRateFor;
+    private aacSamplesPerAccessUnit;
+    private aacSamplesPerAccessUnitFor;
+    private encodedAudioSamples;
+    private leadingDiscardPaddingNs;
+    private extraAudioIndex;
+    private audioPacketStats;
+    private extraAudioPrimingSamples;
+    private extraAudioCodecDelaySamples;
+    private packetTimestamp;
+    private intake;
+    private streamBytesWritten;
+    private streamDurationPatchOffset;
+    private streamEndSec;
+    private streamWrite;
+    private writeStreamingHeaderOnce;
+    private flushPendingCluster;
+    private extraLeadingDiscardPaddingNs;
+    private extraFinalDiscardPaddingNs;
+    private finalDiscardPaddingNs;
+    private setPacketDiscardPadding;
+    private buildStandardDiscardPadding;
+    /** Flushes trailing container structures and closes the sink; must be awaited exactly once. */
+    finalize(): Promise<void>;
+    private finalizeContainer;
+    private sortedSubtitlePackets;
+    private buildEbmlHeader;
+    private buildSegmentInfo;
+    private buildTracks;
+    private buildSubtitleTrackEntry;
+    private buildVideoTrackEntry;
+    private buildAudioTrackEntry;
+    private buildClustersWithTimes;
+    private serializeCluster;
+}

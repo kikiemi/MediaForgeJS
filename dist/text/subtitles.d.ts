@@ -1,0 +1,10 @@
+import type { SubtitleCue, SubtitleDocument, SubtitleOptions } from './types.js';
+export declare function subtitleLimit(value: number | undefined, fallback: number, name: string): number;
+export declare function parseSubtitleTimestamp(value: string): number | null;
+export declare function formatSubtitleTimestamp(seconds: number, format?: 'webvtt' | 'srt'): string;
+export declare function parseWebVtt(input: string | Uint8Array, options?: SubtitleOptions): SubtitleDocument;
+export declare function parseSrt(input: string | Uint8Array, options?: SubtitleOptions): SubtitleDocument;
+export declare function validateSubtitleCue(cue: SubtitleCue): void;
+export declare function writeWebVtt(document: SubtitleDocument | readonly SubtitleCue[], options?: SubtitleOptions): string;
+export declare function writeSrt(document: SubtitleDocument | readonly SubtitleCue[], options?: SubtitleOptions): string;
+export declare function makeWebVttCodecConfig(document?: SubtitleDocument): Uint8Array<ArrayBuffer>;

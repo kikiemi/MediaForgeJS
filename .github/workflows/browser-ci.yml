@@ -1,0 +1,137 @@
+name: Native browser media checks
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '23 4 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      physical_safari:
+        description: Also run Safari on an enrolled physical Mac (trusted self-hosted runner)
+        type: boolean
+        default: false
+      commercial_drm:
+        description: Run authorized commercial DRM services configured in repository secrets (default branch only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-browser-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: ${{ matrix.browser }} on macOS VM
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox, safari]
+    env:
+      MEDIAFORGE_RUNNER_KIND: github-hosted-macos-vm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Check HTTP, fixture and W3C protocol harness (Node only)
+        run: node --test test/browser/harness.test.mjs
+      - name: Enable Apple's native SafariDriver
+        if: matrix.browser == 'safari'
+        run: sudo /usr/bin/safaridriver --enable
+      - name: Run native browser decoding and playback
+        run: node scripts/browser-ci.mjs --browser "${{ matrix.browser }}" --out "artifacts/browser/${{ matrix.browser }}"
+      - name: Preserve capabilities, fixtures and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-browser-${{ matrix.browser }}-${{ github.run_attempt }}
+          path: artifacts/browser/${{ matrix.browser }}/
+          if-no-files-found: warn
+          retention-days: 14
+
+  physical-safari:
+    name: Safari on enrolled physical Mac (optional)
+    if: github.event_name == 'workflow_dispatch' && inputs.physical_safari
+    runs-on: [self-hosted, macOS, mediaforge-physical-mac]
+    timeout-minutes: 15
+    env:
+      MEDIAFORGE_RUNNER_KIND: self-hosted-physical-macos-operator-declared
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run build
+      - run: node --test test/browser/harness.test.mjs
+      # The operator enables Remote Automation on this enrolled machine before dispatch.
+      - run: node scripts/browser-ci.mjs --browser safari --out artifacts/browser/physical-safari
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-browser-physical-safari-${{ github.run_attempt }}
+          path: artifacts/browser/physical-safari/
+          if-no-files-found: warn
+          retention-days: 14
+
+  commercial-drm:
+    name: Authorized DRM service in ${{ matrix.browser }}
+    # Secrets are available only to reviewed default-branch code, never to pull requests.
+    if: >-
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      ((github.event_name == 'schedule' && vars.MEDIAFORGE_DRM_CI_ENABLED == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.commercial_drm))
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chrome
+            service_secret: MEDIAFORGE_DRM_CHROME
+          - browser: firefox
+            service_secret: MEDIAFORGE_DRM_FIREFOX
+          - browser: safari
+            service_secret: MEDIAFORGE_DRM_SAFARI
+    env:
+      MEDIAFORGE_RUNNER_KIND: github-hosted-macos-vm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run build
+      - run: node --test test/browser/harness.test.mjs
+      - name: Enable Apple's native SafariDriver
+        if: matrix.browser == 'safari'
+        run: sudo /usr/bin/safaridriver --enable
+      - name: Play the authorized encrypted VOD through its real CDM and license service
+        env:
+          MEDIAFORGE_DRM_SERVICE_JSON: ${{ secrets[matrix.service_secret] }}
+        run: node scripts/browser-ci.mjs --browser "${{ matrix.browser }}" --drm-service --require-service --out "artifacts/browser/drm-${{ matrix.browser }}"
+      - name: Preserve only the sanitized DRM report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: commercial-drm-${{ matrix.browser }}-${{ github.run_attempt }}
+          path: artifacts/browser/drm-${{ matrix.browser }}/report.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,56 @@
+{
+  "name": "mediaforgejs-streaming",
+  "version": "5.4.0",
+  "description": "Optional streaming entry points for MediaForgeJS",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./hls": {
+      "types": "./hls.d.ts",
+      "import": "./hls.js",
+      "default": "./hls.js"
+    },
+    "./playlist": {
+      "types": "./playlist.d.ts",
+      "import": "./playlist.js",
+      "default": "./playlist.js"
+    },
+    "./playback": {
+      "types": "./playback.d.ts",
+      "import": "./playback.js",
+      "default": "./playback.js"
+    },
+    "./adaptive": {
+      "types": "./adaptive.d.ts",
+      "import": "./adaptive.js",
+      "default": "./adaptive.js"
+    },
+    "./dash": {
+      "types": "./dash.d.ts",
+      "import": "./dash.js",
+      "default": "./dash.js"
+    },
+    "./cmaf": {
+      "types": "./cmaf.d.ts",
+      "import": "./cmaf.js",
+      "default": "./cmaf.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "*.js",
+    "*.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "WTFPL",
+  "peerDependencies": {
+    "mediaforgejs": "^5.4.0"
+  }
+}

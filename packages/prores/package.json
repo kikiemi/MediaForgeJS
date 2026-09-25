@@ -1,0 +1,32 @@
+{
+  "name": "mediaforgejs-prores",
+  "version": "5.4.0",
+  "description": "Optional ProRes WASM decode and encode adapter for MediaForgeJS",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "*.js",
+    "*.d.ts",
+    "README.md",
+    "LICENSE",
+    "LICENSE-LGPL-2.1",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "license": "(WTFPL AND LGPL-2.1-or-later)",
+  "dependencies": {
+    "prores-wasm-encoder": "1.0.0",
+    "turbores": "1.2.2"
+  },
+  "peerDependencies": {
+    "mediaforgejs": "^5.4.0"
+  }
+}

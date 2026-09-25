@@ -1,0 +1,44 @@
+name: Node and packages
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Block external media executables during tests
+        run: |
+          mkdir -p "$RUNNER_TEMP/no-ffmpeg"
+          printf '#!/bin/sh\necho "Unexpected external media process" >&2\nexit 97\n' > "$RUNNER_TEMP/no-ffmpeg/ffmpeg"
+          cp "$RUNNER_TEMP/no-ffmpeg/ffmpeg" "$RUNNER_TEMP/no-ffmpeg/ffprobe"
+          chmod +x "$RUNNER_TEMP/no-ffmpeg/ffmpeg" "$RUNNER_TEMP/no-ffmpeg/ffprobe"
+          echo "$RUNNER_TEMP/no-ffmpeg" >> "$GITHUB_PATH"
+      - run: npm run check
+      - run: npm run release:pack
+      - run: npm run test:release
+      - run: npm run release:verify
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages-node-${{ matrix.node }}
+          path: release/
+          if-no-files-found: error
