@@ -150,7 +150,7 @@ The support matrix below is verified automatically against the test suite (`npm 
 
 ### 2.1 概要とパイプラインの仕組み
 
-MediaForgeJS の基本方針はシンプルです。**「出力ファイルの正当性を保証しつつ、可能な限り元のデータを劣化させない（無駄な再エンコードをしない）」**ことです。
+MediaForgeJS の基本方針はシンプルです。出力ファイルの正当性を保証しつつ、可能な限り元のデータを劣化させない（無駄な再エンコードをしない）ことです。
 
 `convert()` や `edit()`、`packageMedia()` を呼び出すと、内部では以下の3つのフェーズが順に実行されます。
 
