@@ -1,0 +1,1105 @@
+{
+  "schema": 1,
+  "origin": "Original deterministic fixtures authored for MediaForgeJS; generated locally without external media, binaries, or downloads.",
+  "seed": "0x4d463430",
+  "generator": "test/helpers/original-fixtures.mjs",
+  "payloadScope": "PCM and constant FLAC carry real sample values. AAC/MPEG/Opus/VP8 payload sentinels validate packet transport, not decoder conformance.",
+  "files": [
+    {
+      "name": "stereo-pcm.wav",
+      "format": "wav",
+      "bytes": 72,
+      "sha256": "c435a5f755c81f4f66b944d622cb1ab5dd92887210326b368ee0152d5da84422",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-s16le",
+          "sampleRate": 8000,
+          "channelCount": 2,
+          "sampleCount": 1,
+          "duration": [4, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [4, 8000],
+          "hex": "0000ff7f0080ffff002000e0d2042efb"
+        }
+      ],
+      "remux": ["wav", "aiff", "au", "caf"],
+      "pcm": "s16"
+    },
+    {
+      "name": "stereo-pcm.rf64.wav",
+      "format": "wav",
+      "bytes": 108,
+      "sha256": "2ee361fb7144e6dc66afbd70a623f40fa485ba0be0b2184836976117147aa76a",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-s16le",
+          "sampleRate": 8000,
+          "channelCount": 2,
+          "sampleCount": 1,
+          "duration": [4, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [4, 8000],
+          "hex": "0000ff7f0080ffff002000e0d2042efb"
+        }
+      ],
+      "remux": ["wav", "aiff", "au", "caf"],
+      "pcm": "s16"
+    },
+    {
+      "name": "mono-pcm.aiff",
+      "format": "aiff",
+      "bytes": 100,
+      "sha256": "781a99672131e19117d2e5ff9c72226bc455ce2c6934aa6f250810c3fc8488b7",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-s16be",
+          "sampleRate": 8000,
+          "channelCount": 1,
+          "sampleCount": 1,
+          "duration": [8, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [8, 8000],
+          "hex": "00007fff8000ffff2000e00004d2fb2e"
+        }
+      ],
+      "remux": ["wav", "aiff", "au", "caf"],
+      "pcm": "s16"
+    },
+    {
+      "name": "mono-pcm.au",
+      "format": "au",
+      "bytes": 48,
+      "sha256": "4df2969488047327e6fa9a7e38cc7da96d4fcdc09eadc5de9230a21c3d7836ca",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-s16be",
+          "sampleRate": 8000,
+          "channelCount": 1,
+          "sampleCount": 1,
+          "duration": [8, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [8, 8000],
+          "hex": "00007fff8000ffff2000e00004d2fb2e"
+        }
+      ],
+      "remux": ["wav", "aiff", "au", "caf"],
+      "pcm": "s16"
+    },
+    {
+      "name": "unknown-size.au",
+      "format": "au",
+      "bytes": 48,
+      "sha256": "7b8499ff8f8eca9fb7f32541146f1a07ab0026dd40cebe3da5b53c0b84d965b7",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-s16be",
+          "sampleRate": 8000,
+          "channelCount": 1,
+          "sampleCount": 1,
+          "duration": [8, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [8, 8000],
+          "hex": "00007fff8000ffff2000e00004d2fb2e"
+        }
+      ],
+      "remux": ["wav", "aiff", "au", "caf"],
+      "pcm": "s16"
+    },
+    {
+      "name": "float-stereo.caf",
+      "format": "caf",
+      "bytes": 100,
+      "sha256": "f475a9ac5894e839433e8f9334b465e01649d8415ce309a547223387e8503220",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-f32le",
+          "sampleRate": 8000,
+          "channelCount": 2,
+          "sampleCount": 1,
+          "duration": [4, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [4, 8000],
+          "hex": "000080bf0000803f0000003f000000bf000000000000803e000080be00000000"
+        }
+      ],
+      "remux": ["wav", "aiff", "au", "caf"],
+      "pcm": "f32"
+    },
+    {
+      "name": "unknown-size.caf",
+      "format": "caf",
+      "bytes": 100,
+      "sha256": "2fb6e6c2a4bd5a7e42339ec441f4fc3a90b6c1144e24fc59804cc66499b139da",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-f32le",
+          "sampleRate": 8000,
+          "channelCount": 2,
+          "sampleCount": 1,
+          "duration": [4, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [4, 8000],
+          "hex": "000080bf0000803f0000003f000000bf000000000000803e000080be00000000"
+        }
+      ],
+      "remux": ["wav", "aiff", "au", "caf"],
+      "pcm": "f32"
+    },
+    {
+      "name": "four-frames.aac",
+      "format": "aac",
+      "bytes": 44,
+      "sha256": "73027116d30c2d4b8e55241c148392e05e93353beaa22c3287492c31925aab5e",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [4096, 48000],
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 48000],
+          "duration": [1024, 48000],
+          "hex": "0100107f"
+        },
+        {
+          "trackId": 1,
+          "time": [1024, 48000],
+          "duration": [1024, 48000],
+          "hex": "0111207e"
+        },
+        {
+          "trackId": 1,
+          "time": [2048, 48000],
+          "duration": [1024, 48000],
+          "hex": "0122307d"
+        },
+        {
+          "trackId": 1,
+          "time": [3072, 48000],
+          "duration": [1024, 48000],
+          "hex": "0133407c"
+        }
+      ],
+      "remux": ["aac", "mp4", "mkv"]
+    },
+    {
+      "name": "crc-headers.aac",
+      "format": "aac",
+      "bytes": 52,
+      "sha256": "a47e3b2558c7a4136babd0ba6bfc868e797ff12b7f358c0802c628ae51d471c9",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [4096, 48000],
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 48000],
+          "duration": [1024, 48000],
+          "hex": "0100107f"
+        },
+        {
+          "trackId": 1,
+          "time": [1024, 48000],
+          "duration": [1024, 48000],
+          "hex": "0111207e"
+        },
+        {
+          "trackId": 1,
+          "time": [2048, 48000],
+          "duration": [1024, 48000],
+          "hex": "0122307d"
+        },
+        {
+          "trackId": 1,
+          "time": [3072, 48000],
+          "duration": [1024, 48000],
+          "hex": "0133407c"
+        }
+      ],
+      "remux": ["aac", "mp4", "mkv"]
+    },
+    {
+      "name": "resynchronized.aac",
+      "format": "aac",
+      "bytes": 47,
+      "sha256": "a79a7f3882e5732618f8aaf9288014b915526111d7ea7105b9b8727af1a1cada",
+      "strict": "reject",
+      "warnings": ["ADTS_RESYNCHRONIZED"],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [4096, 48000],
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 48000],
+          "duration": [1024, 48000],
+          "hex": "0100107f"
+        },
+        {
+          "trackId": 1,
+          "time": [1024, 48000],
+          "duration": [1024, 48000],
+          "hex": "0111207e"
+        },
+        {
+          "trackId": 1,
+          "time": [2048, 48000],
+          "duration": [1024, 48000],
+          "hex": "0122307d"
+        },
+        {
+          "trackId": 1,
+          "time": [3072, 48000],
+          "duration": [1024, 48000],
+          "hex": "0133407c"
+        }
+      ],
+      "remux": ["mp4"]
+    },
+    {
+      "name": "truncated-tail.aac",
+      "format": "aac",
+      "bytes": 42,
+      "sha256": "5dd44dfa998c80f989e6cd28ffbeaf87cb217111bdc29ee3ecd922a59fd7f1c5",
+      "strict": "reject",
+      "warnings": ["AUDIO_TRUNCATED_TAIL"],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 3,
+          "duration": [3072, 48000],
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 48000],
+          "duration": [1024, 48000],
+          "hex": "0100107f"
+        },
+        {
+          "trackId": 1,
+          "time": [1024, 48000],
+          "duration": [1024, 48000],
+          "hex": "0111207e"
+        },
+        {
+          "trackId": 1,
+          "time": [2048, 48000],
+          "duration": [1024, 48000],
+          "hex": "0122307d"
+        }
+      ],
+      "remux": ["mp4"]
+    },
+    {
+      "name": "four-frames.mp1",
+      "format": "mp1",
+      "bytes": 544,
+      "sha256": "4a0328271a0168c8457beaf5c4a118013a3b7a62608942a13811de3640f090da",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp1",
+          "sampleRate": 44100,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [1536, 44100]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 44100],
+          "duration": [384, 44100],
+          "bytes": 136,
+          "sha256": "50d3f45745181d2c66a12e4bdda8bb18ddc0cf5cd433b89b2f3c48063c87fb3e"
+        },
+        {
+          "trackId": 1,
+          "time": [384, 44100],
+          "duration": [384, 44100],
+          "bytes": 136,
+          "sha256": "dfac9ff667c9135dc52a0725fe203d7017d10664b30b0bd201398de2aa68b505"
+        },
+        {
+          "trackId": 1,
+          "time": [768, 44100],
+          "duration": [384, 44100],
+          "bytes": 136,
+          "sha256": "209b0abb89e62cd9c215ea434053f6118c5a3dc850593c6d6fcf29cda6dc19ae"
+        },
+        {
+          "trackId": 1,
+          "time": [1152, 44100],
+          "duration": [384, 44100],
+          "bytes": 136,
+          "sha256": "e78daa16bb9cd8704420de996e058f2e950808c75f550cda34136f36f1c19936"
+        }
+      ],
+      "remux": ["mp1"]
+    },
+    {
+      "name": "four-frames.mp2",
+      "format": "mp2",
+      "bytes": 1668,
+      "sha256": "0a66106939ff65c5b0ef7e6ab7b1218a803b7efaada8637686fc6682dd5ecaa1",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp2",
+          "sampleRate": 44100,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [4608, 44100]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "481806c132a83667efdbfda2da0b424db294a7b3d2814b3ed6728a7b795a766a"
+        },
+        {
+          "trackId": 1,
+          "time": [1152, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "d724c4fc0099936a108463457c5f1e65ffbbb89f54cab6c36e4412185955844a"
+        },
+        {
+          "trackId": 1,
+          "time": [2304, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "cff67144bf1595c323abc50253212c00085a4a00f49bd664446006bb990af107"
+        },
+        {
+          "trackId": 1,
+          "time": [3456, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "2ed01265f02fcb2b92f4b920ea21076b0bee4f845d3967144bbe501110997cbb"
+        }
+      ],
+      "remux": ["mp2"]
+    },
+    {
+      "name": "four-frames.mp3",
+      "format": "mp3",
+      "bytes": 1668,
+      "sha256": "ed80f869ee36ad6c1e7d5287b8179338b13778c267ec4ec335d01ba5e5e78773",
+      "strict": "pass",
+      "warnings": ["MPEG_GAPLESS_METADATA"],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp3",
+          "sampleRate": 44100,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [4608, 44100]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "b472e3a52128f01d49fcf808c62fab3cd78741362e4fcde5bdaa69bfd2b94b69"
+        },
+        {
+          "trackId": 1,
+          "time": [1152, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "1ddf113a5f54eafc70b9d8d0faa0188ff676e13a52c106ea54ce1f5cd7426bd4"
+        },
+        {
+          "trackId": 1,
+          "time": [2304, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "270fdced76ec28704776a92fe699458f206e7cb5fd0e4271ca042adc3f598327"
+        },
+        {
+          "trackId": 1,
+          "time": [3456, 44100],
+          "duration": [1152, 44100],
+          "bytes": 417,
+          "sha256": "acbb2e67b1b37bb1db8d891bfe6c1c7f8f5f21fee12fa0b8ecdf81fc2d6c2e67"
+        }
+      ],
+      "remux": ["mp3"]
+    },
+    {
+      "name": "constant-steps.flac",
+      "format": "flac",
+      "bytes": 78,
+      "sha256": "0e3e40beb77b7e8c0606f7286a46d89875164c0a212271080390b4752de2ca62",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "flac",
+          "sampleRate": 8000,
+          "channelCount": 1,
+          "sampleCount": 3,
+          "duration": [48, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [16, 8000],
+          "hex": "fff86408000fce0003e806f5"
+        },
+        {
+          "trackId": 1,
+          "time": [16, 8000],
+          "duration": [16, 8000],
+          "hex": "fff86408010fdb00fc187adf"
+        },
+        {
+          "trackId": 1,
+          "time": [32, 8000],
+          "duration": [16, 8000],
+          "hex": "fff86408020fe4000000768a"
+        }
+      ],
+      "remux": ["flac", "mkv"]
+    },
+    {
+      "name": "three-packets.opus",
+      "format": "opus",
+      "bytes": 151,
+      "sha256": "101dc8bfa784bbe0722b0a588bfde82dc8b71330461196491842baaadf8de54e",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "opus",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 3,
+          "duration": [360, 48000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 48000],
+          "duration": [120, 48000],
+          "hex": "803101"
+        },
+        {
+          "trackId": 1,
+          "time": [120, 48000],
+          "duration": [120, 48000],
+          "hex": "803202"
+        },
+        {
+          "trackId": 1,
+          "time": [240, 48000],
+          "duration": [120, 48000],
+          "hex": "803303"
+        }
+      ],
+      "remux": ["ogg", "mkv"]
+    },
+    {
+      "name": "preskip-and-trim.opus",
+      "format": "opus",
+      "bytes": 151,
+      "sha256": "c74256f89bff59b8d994550839be0e3083ccb478e95dbe94561ae31f6507c69e",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "opus",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 3,
+          "duration": [180, 48000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [-120, 48000],
+          "duration": [120, 48000],
+          "hex": "803101"
+        },
+        {
+          "trackId": 1,
+          "time": [0, 48000],
+          "duration": [120, 48000],
+          "hex": "803202"
+        },
+        {
+          "trackId": 1,
+          "time": [120, 48000],
+          "duration": [120, 48000],
+          "hex": "803303"
+        }
+      ],
+      "remux": ["ogg"]
+    },
+    {
+      "name": "audio-and-captions.mkv",
+      "format": "mkv",
+      "bytes": 271,
+      "sha256": "9ca14906650cdc4e65aa4b0875de13a61a82c310e8b18e60ed389e7fa3571787",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "opus",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 2,
+          "duration": [40, 1000],
+          "language": "eng",
+          "default": true,
+          "forced": false
+        },
+        {
+          "id": 2,
+          "type": "subtitle",
+          "codec": "text/utf8",
+          "sampleCount": 1,
+          "duration": [85, 1000],
+          "language": "jpn",
+          "name": "Original captions",
+          "default": true,
+          "forced": true
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 1000],
+          "duration": [20, 1000],
+          "hex": "f83101"
+        },
+        {
+          "trackId": 2,
+          "time": [10, 1000],
+          "duration": [75, 1000],
+          "hex": "e78bace887aa2066697874757265"
+        },
+        {
+          "trackId": 1,
+          "time": [20, 1000],
+          "duration": [20, 1000],
+          "hex": "f83202"
+        }
+      ],
+      "remux": ["mkv"]
+    },
+    {
+      "name": "aac-transport.ts",
+      "format": "ts",
+      "bytes": 1128,
+      "sha256": "d1676ce76e4ed25e68160a156bbd0be3520fae95dcadf3d00e262918de2556de",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [4096, 48000],
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 48000],
+          "duration": [1024, 48000],
+          "hex": "0100107f",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [1024, 48000],
+          "duration": [1024, 48000],
+          "hex": "0111207e",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [2048, 48000],
+          "duration": [1024, 48000],
+          "hex": "0122307d",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [3072, 48000],
+          "duration": [1024, 48000],
+          "hex": "0133407c",
+          "decodeTime": null
+        }
+      ],
+      "remux": ["mp4", "mkv", "ts"]
+    },
+    {
+      "name": "aac-tags.flv",
+      "format": "flv",
+      "bytes": 116,
+      "sha256": "57ce9af1de6c10f52cb0c648ec489b88db76fb43a4032e8f9a8d8ca5e3ce7ab9",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 4,
+          "duration": [4096, 48000],
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 1000],
+          "duration": [21.333333333333332, 1000],
+          "hex": "0100107f"
+        },
+        {
+          "trackId": 1,
+          "time": [21, 1000],
+          "duration": [21.333333333333332, 1000],
+          "hex": "0111207e"
+        },
+        {
+          "trackId": 1,
+          "time": [43, 1000],
+          "duration": [21.333333333333332, 1000],
+          "hex": "0122307d"
+        },
+        {
+          "trackId": 1,
+          "time": [64, 1000],
+          "duration": [21.333333333333332, 1000],
+          "hex": "0133407c"
+        }
+      ],
+      "remux": ["mp4", "mkv"]
+    },
+    {
+      "name": "classic-aac.mp4",
+      "format": "mp4",
+      "bytes": 543,
+      "sha256": "84d17c1bb73a0c38655f3cf59a22495bc633e0eef6e80ab1c7c201568b7224bf",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 6,
+          "duration": [240, 1000],
+          "language": "eng",
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 1000],
+          "duration": [40, 1000],
+          "hex": "07121d28",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [40, 1000],
+          "duration": [40, 1000],
+          "hex": "2c37424d",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [80, 1000],
+          "duration": [40, 1000],
+          "hex": "515c6772",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [120, 1000],
+          "duration": [40, 1000],
+          "hex": "76818c97",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [160, 1000],
+          "duration": [40, 1000],
+          "hex": "9ba6b1bc",
+          "decodeTime": null
+        },
+        {
+          "trackId": 1,
+          "time": [200, 1000],
+          "duration": [40, 1000],
+          "hex": "c0cbd6e1",
+          "decodeTime": null
+        }
+      ],
+      "remux": ["mp4", "mkv", "fmp4"]
+    },
+    {
+      "name": "variable-chunks.mp4",
+      "format": "mp4",
+      "bytes": 643,
+      "sha256": "cfa2323e9d5201d018e388ee61c01813b4718d35650a84cbe31d769e51e5bd79",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "mp4a.40.2",
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleCount": 6,
+          "duration": [125, 1000],
+          "language": "eng",
+          "configHex": "1188"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [-5, 1000],
+          "duration": [10, 1000],
+          "hex": "07121d",
+          "decodeTime": [-5, 1000]
+        },
+        {
+          "trackId": 1,
+          "time": [10, 1000],
+          "duration": [10, 1000],
+          "hex": "2c37424d58",
+          "decodeTime": [5, 1000]
+        },
+        {
+          "trackId": 1,
+          "time": [20, 1000],
+          "duration": [30, 1000],
+          "hex": "51",
+          "decodeTime": [15, 1000]
+        },
+        {
+          "trackId": 1,
+          "time": [50, 1000],
+          "duration": [30, 1000],
+          "hex": "76818c97a2adb8",
+          "decodeTime": [45, 1000]
+        },
+        {
+          "trackId": 1,
+          "time": [80, 1000],
+          "duration": [20, 1000],
+          "hex": "9ba6",
+          "decodeTime": [75, 1000]
+        },
+        {
+          "trackId": 1,
+          "time": [100, 1000],
+          "duration": [20, 1000],
+          "hex": "c0cbd6e1",
+          "decodeTime": [95, 1000]
+        }
+      ],
+      "remux": ["mp4"]
+    },
+    {
+      "name": "keyframe-and-deltas.webm",
+      "format": "webm",
+      "bytes": 152,
+      "sha256": "bd419a7553c77ca2678d4855b92fa1f5f432c57e1d0b92ecd56633e7af088598",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "video",
+          "codec": "vp8",
+          "width": 2,
+          "height": 2,
+          "displayWidth": 4,
+          "displayHeight": 2,
+          "pixelAspectRatioNum": 2,
+          "pixelAspectRatioDen": 1,
+          "sampleCount": 3,
+          "duration": [120, 1000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 1000],
+          "duration": [40, 1000],
+          "hex": "1000009d012a020002001430",
+          "keyframe": true
+        },
+        {
+          "trackId": 1,
+          "time": [40, 1000],
+          "duration": [40, 1000],
+          "hex": "1100000113",
+          "keyframe": false
+        },
+        {
+          "trackId": 1,
+          "time": [80, 1000],
+          "duration": [40, 1000],
+          "hex": "1100000214",
+          "keyframe": false
+        }
+      ],
+      "remux": ["webm", "mkv"]
+    },
+    {
+      "name": "nested-record-pcm.avi",
+      "format": "avi",
+      "bytes": 236,
+      "sha256": "8be6838a2bac297db9d3523a264cd8eb13d804a115ae0d84dde4d0e37349028e",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "audio",
+          "codec": "pcm-s16le",
+          "sampleRate": 8000,
+          "channelCount": 2,
+          "sampleCount": 1,
+          "duration": [4, 8000]
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [0, 8000],
+          "duration": [4, 8000],
+          "hex": "0000ff7f0080ffff002000e0d2042efb",
+          "decodeTime": null
+        }
+      ],
+      "remux": ["avi", "wav"],
+      "pcm": "s16"
+    },
+    {
+      "name": "mpeg2-bframes.mpg",
+      "format": "mpeg",
+      "bytes": 433,
+      "sha256": "70bfe25002ea8fdec86199ec5f79c8d54d3c86d3c9b0a63be0a6b071b84e9ec3",
+      "strict": "pass",
+      "warnings": [],
+      "tracks": [
+        {
+          "id": 1,
+          "type": "video",
+          "codec": "mp4v.61",
+          "width": 32,
+          "height": 16,
+          "sampleCount": 7,
+          "duration": [25200, 90000],
+          "configHex": "000001b302001013ffffe380000001b5148a00010000"
+        }
+      ],
+      "packets": [
+        {
+          "trackId": 1,
+          "time": [90000, 90000],
+          "decodeTime": [86400, 90000],
+          "duration": [3600, 90000],
+          "hex": "000001b302001013ffffe380000001b5148a00010000000001b80000004000000100000ffff8000001b58ffff341800000010113f87d2980",
+          "keyframe": true
+        },
+        {
+          "trackId": 1,
+          "time": [100800, 90000],
+          "decodeTime": [90000, 90000],
+          "duration": [3600, 90000],
+          "hex": "0000010000d7fffb80000001b5811ff341800000010113f87d2980",
+          "keyframe": false
+        },
+        {
+          "trackId": 1,
+          "time": [93600, 90000],
+          "decodeTime": [93600, 90000],
+          "duration": [3600, 90000],
+          "hex": "00000100005ffffbb8000001b581111341800000010113f87d2980",
+          "keyframe": false
+        },
+        {
+          "trackId": 1,
+          "time": [97200, 90000],
+          "decodeTime": [97200, 90000],
+          "duration": [3600, 90000],
+          "hex": "00000100009ffffbb8000001b581111341800000010113f87d2980",
+          "keyframe": false
+        },
+        {
+          "trackId": 1,
+          "time": [111600, 90000],
+          "decodeTime": [100800, 90000],
+          "duration": [3600, 90000],
+          "hex": "000001000197fffb80000001b5811ff341800000010113f87d2980",
+          "keyframe": false
+        },
+        {
+          "trackId": 1,
+          "time": [104400, 90000],
+          "decodeTime": [104400, 90000],
+          "duration": [3600, 90000],
+          "hex": "00000100011ffffbb8000001b581111341800000010113f87d2980",
+          "keyframe": false
+        },
+        {
+          "trackId": 1,
+          "time": [108000, 90000],
+          "decodeTime": [108000, 90000],
+          "duration": [3600, 90000],
+          "hex": "00000100015ffffbb8000001b581111341800000010113f87d2980",
+          "keyframe": false
+        }
+      ],
+      "remux": ["mp4", "mov", "mkv", "ts", "avi"],
+      "unsupportedRemux": ["webm", "flv"]
+    }
+  ]
+}

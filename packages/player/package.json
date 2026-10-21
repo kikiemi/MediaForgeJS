@@ -1,0 +1,26 @@
+{
+  "name": "mediaforgejs-player",
+  "version": "1.0.0",
+  "description": "HLS and DASH playback through Media Source Extensions for MediaForgeJS: adaptive quality, live streams, EME and HLS DRM",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "WTFPL",
+  "peerDependencies": {
+    "mediaforgejs": "^1.0.0"
+  }
+}

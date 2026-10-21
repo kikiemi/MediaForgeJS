@@ -1,0 +1,108 @@
+{
+  "name": "mediaforgejs",
+  "version": "1.0.0",
+  "description": "Media inspection, conversion, packaging and editing in the browser and Node, without external runtimes",
+  "main": "./dist/esm/api/entries/index.js",
+  "types": "./dist/api/entries/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/api/entries/index.d.ts",
+      "import": "./dist/esm/api/entries/index.js",
+      "default": "./dist/esm/api/entries/index.js"
+    },
+    "./lite": {
+      "types": "./dist/api/entries/lite.d.ts",
+      "import": "./dist/esm/api/entries/lite.js",
+      "default": "./dist/esm/api/entries/lite.js"
+    },
+    "./parts": {
+      "types": "./dist/api/entries/parts.d.ts",
+      "import": "./dist/esm/api/entries/parts.js",
+      "default": "./dist/esm/api/entries/parts.js"
+    },
+    "./plugins": {
+      "types": "./dist/api/entries/plugins.d.ts",
+      "import": "./dist/esm/api/entries/plugins.js",
+      "default": "./dist/esm/api/entries/plugins.js"
+    },
+    "./io": {
+      "types": "./dist/api/entries/io.d.ts",
+      "import": "./dist/esm/api/entries/io.js",
+      "default": "./dist/esm/api/entries/io.js"
+    },
+    "./formats": {
+      "types": "./dist/api/entries/formats.d.ts",
+      "import": "./dist/esm/api/entries/formats.js",
+      "default": "./dist/esm/api/entries/formats.js"
+    },
+    "./streaming": {
+      "types": "./dist/api/entries/streaming.d.ts",
+      "import": "./dist/esm/api/entries/streaming.js",
+      "default": "./dist/esm/api/entries/streaming.js"
+    },
+    "./codecs": {
+      "types": "./dist/api/entries/codecs.d.ts",
+      "import": "./dist/esm/api/entries/codecs.js",
+      "default": "./dist/esm/api/entries/codecs.js"
+    },
+    "./runtime/node": {
+      "types": "./dist/api/entries/runtime-node.d.ts",
+      "import": "./dist/esm/api/entries/runtime-node.js",
+      "default": "./dist/esm/api/entries/runtime-node.js"
+    },
+    "./runtime/deno": {
+      "types": "./dist/api/entries/runtime-deno.d.ts",
+      "import": "./dist/esm/api/entries/runtime-deno.js",
+      "default": "./dist/esm/api/entries/runtime-deno.js"
+    },
+    "./runtime/ffmpeg": {
+      "types": "./dist/api/entries/runtime-ffmpeg.d.ts",
+      "import": "./dist/esm/api/entries/runtime-ffmpeg.js",
+      "default": "./dist/esm/api/entries/runtime-ffmpeg.js"
+    },
+    "./browser": "./dist/MediaForgeJS.min.js",
+    "./browser/lite": "./dist/MediaForgeJS.lite.min.js",
+    "./browser/plugins/*": "./dist/browser-plugins/*.min.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "features": "node scripts/features.mjs",
+    "support": "node scripts/support.mjs",
+    "api:report": "node scripts/api-report.mjs",
+    "test": "node scripts/test.mjs",
+    "test:affected": "node scripts/test.mjs --affected",
+    "test:browser": "node scripts/browser-tests.mjs",
+    "test:release": "node --test test/release-offline.mjs",
+    "format": "node scripts/format.mjs",
+    "format:check": "node scripts/format.mjs --check",
+    "check": "npm run typecheck && npm run format:check && npm run features && npm test",
+    "release:pack": "node scripts/release.mjs pack",
+    "release:verify": "node scripts/release.mjs verify",
+    "prepublishOnly": "npm run build && npm run check"
+  },
+  "license": "WTFPL",
+  "devDependencies": {
+    "prettier": "3.9.9",
+    "prores-wasm-encoder": "1.0.0",
+    "turbores": "1.2.2",
+    "typescript": "^5.7.3"
+  },
+  "type": "module",
+  "module": "./dist/esm/api/entries/index.js",
+  "browser": "./dist/MediaForgeJS.min.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs/*.md"
+  ],
+  "sideEffects": [
+    "./dist/MediaForgeJS.js",
+    "./dist/MediaForgeJS.min.js",
+    "./dist/MediaForgeJS.lite.js",
+    "./dist/MediaForgeJS.lite.min.js",
+    "./dist/browser-plugins/*.js"
+  ]
+}

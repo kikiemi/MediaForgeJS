@@ -1,0 +1,41 @@
+name: Browser tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  # Daily as well, so the browser tests and the support matrix run in the current browsers.
+  schedule:
+    - cron: '41 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: ${{ matrix.browser }}
+    runs-on: macos-15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox, safari]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Enable SafariDriver
+        if: matrix.browser == 'safari'
+        run: sudo /usr/bin/safaridriver --enable
+      # The runner image provides Chrome, Firefox and their drivers (CHROMEWEBDRIVER, GECKOWEBDRIVER).
+      - run: npm run test:browser -- --browser ${{ matrix.browser }}
