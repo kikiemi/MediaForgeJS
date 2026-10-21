@@ -10,7 +10,7 @@
 
 Media inspection, conversion, editing, streaming packaging, and playback for the browser, Node.js, and Deno—without external runtime dependencies.
 
-### The Philosophy (Or: Why Another Media Library?)
+### The Philosophy (Why Another Media Library?)
 
 If you have ever tried to process video or audio in JavaScript, you already know the two traditional paths of sorrow:
 
@@ -238,7 +238,7 @@ Licensed under the **WTFPL** (Do What The Fuck You Want To Public License). See 
 
 外部ランタイム一切不要。ブラウザ、Node.js、Denoのすべてで動作する、メディア解析・変換・非破壊編集・ストリーミングパッケージング・再生ライブラリ。
 
-### 開発の背景（あるいは、なぜまたメディアライブラリを作ったのか）
+### 開発の背景（なぜまたメディアライブラリを作ったのか）
 
 JavaScriptで動画や音声を扱おうとしたことがある方なら、これまで人類が歩んできた「2つの茨の道」をご存知のはずです。
 
@@ -472,7 +472,7 @@ const { blob } = await forge.convert(aviBlob, 'flac');
 
 Анализ, конвертация, нелинейный монтаж, упаковка для стриминга и воспроизведение медиафайлов в браузере, Node.js и Deno — без внешних зависимостей и сторонних рантаймов.
 
-### Философия проекта (Или зачем миру ещё одна медиа-библиотека?)
+### Философия проекта
 
 Если вам когда-либо приходилось обрабатывать видео или звук на JavaScript, вы наверняка знакомы с двумя классическими путями страданий:
 
