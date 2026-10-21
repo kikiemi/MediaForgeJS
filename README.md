@@ -233,7 +233,7 @@ Licensed under the **WTFPL** (Do What The Fuck You Want To Public License). See 
 ---
 
 ---
-
+<a name="japanese"></a>
 ## MediaForgeJS (日本語)
 
 外部ランタイム一切不要。ブラウザ、Node.js、Denoのすべてで動作する、メディア解析・変換・非破壊編集・ストリーミングパッケージング・再生ライブラリ。
@@ -467,6 +467,7 @@ const { blob } = await forge.convert(aviBlob, 'flac');
 ---
 
 ---
+<a name="russian"></a>
 
 ## MediaForgeJS (Русский)
 
