@@ -120,6 +120,35 @@ export function isHdrTransfer(transfer: string | null | undefined): boolean {
     return transfer === 'pq' || transfer === 'hlg';
 }
 
+/** Whether a colour space is HDR or wide-gamut, which becomes SDR BT.709 as RGBA8. */
+export function isHdrColour(space: VideoColorSpaceInit | null | undefined): boolean {
+    return (
+        isHdrTransfer(space?.transfer as string | null | undefined) ||
+        (space?.primaries as string | null | undefined) === 'bt2020'
+    );
+}
+
+const sdrReports = new WeakMap<DecodeRecovery, () => void>();
+
+/**
+ * The toSdr of the pictures a decoder with `recovery` makes: one HDR_TO_SDR warning, or a FORMAT
+ * error under strict validation.
+ */
+export function sdrReport(recovery: DecodeRecovery): () => void {
+    let report = sdrReports.get(recovery);
+    if (!report) {
+        let reported = false;
+        report = () => {
+            if (recovery.strict) throw new MediaForgeError('HDR video would become SDR', 'FORMAT');
+            if (reported) return;
+            reported = true;
+            recovery.warn('HDR_TO_SDR', 'HDR video is converted to SDR');
+        };
+        sdrReports.set(recovery, report);
+    }
+    return report;
+}
+
 /**
  * Host decoder configuration of a demuxed video track: coded size, configuration record and colour
  * description.
@@ -230,9 +259,11 @@ export class HostVideoDecoder implements FrameDecoder {
     private submitted = 0;
     private outputs = 0;
     private closed = false;
+    /** Whether the decoder was replaced by one preferring software after it failed at first. */
+    private software = false;
 
     constructor(
-        private readonly config: VideoDecoderConfig,
+        private config: VideoDecoderConfig,
         private readonly lifetime: CodecLifetime,
         private readonly output: PictureOutput,
         private readonly recovery: DecodeRecovery,
@@ -279,8 +310,13 @@ export class HostVideoDecoder implements FrameDecoder {
         this.restarts = 0;
         this.replayed = false;
         try {
+            // A host that ignores the configured colour (Safari) labels the pictures of an HDR
+            // stream SDR, which nothing after can tell: that is their conversion to SDR.
+            if (isHdrColour(this.config.colorSpace) && !isHdrColour(frame.colorSpace))
+                sdrReport(this.recovery)();
             this.output(frame, timing);
         } catch (error) {
+            frame.close();
             this.lifetime.record(error);
         }
     }
@@ -317,6 +353,22 @@ export class HostVideoDecoder implements FrameDecoder {
      */
     private async restart(): Promise<void> {
         let held = this.heldPackets();
+        // A decoder that fails before its first picture where it may use hardware (Safari's VP9
+        // in a macOS virtual machine) is replaced by one that prefers software, which decodes the
+        // packets again; only when that fails as well are packets dropped.
+        if (
+            !this.outputs &&
+            !this.software &&
+            (this.config.hardwareAcceleration ?? 'no-preference') === 'no-preference' &&
+            held[0]?.isKeyframe
+        ) {
+            this.software = true;
+            this.config = { ...this.config, hardwareAcceleration: 'prefer-software' };
+            this.broken = undefined;
+            this.reopen();
+            for (const packet of held) if (!this.broken) this.submit(packet);
+            return;
+        }
         for (;;) {
             if (++this.restarts > MAX_RECOVERIES)
                 throw this.lifetime.record(this.firstError ?? this.broken!);

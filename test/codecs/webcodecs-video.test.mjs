@@ -79,14 +79,14 @@ function fakeVideoDecoder(respond, { hold = 0, refuseConfig = false } = {}) {
 }
 
 /** A HostVideoDecoder on `Decoder`, collecting its pictures and warnings. */
-function decoderOn(Decoder, { strict = false } = {}) {
+function decoderOn(Decoder, { strict = false, config = {} } = {}) {
     const restore = installGlobals({ VideoDecoder: Decoder, EncodedVideoChunk: FakeChunk });
     const pictures = [];
     const warnings = [];
     const lifetime = new CodecLifetime();
     try {
         const decoder = new HostVideoDecoder(
-            { codec: 'vp8', codedWidth: 16, codedHeight: 16 },
+            { codec: 'vp8', codedWidth: 16, codedHeight: 16, ...config },
             lifetime,
             (picture, timing) => pictures.push([picture, timing]),
             { strict, warn: (code, message) => warnings.push([code, message]) },
@@ -460,6 +460,60 @@ describe('webcodecs', () => {
             }
         });
 
+        test('a decoder failing before its first picture is retried in software', async () => {
+            // As Safari's VP9 decoder in a macOS virtual machine: the hardware one fails, the
+            // software one decodes every packet again.
+            const { Decoder, stats } = fakeVideoDecoder((decoder, chunk) =>
+                decoder.config.hardwareAcceleration === 'prefer-software'
+                    ? echo(decoder, chunk)
+                    : new DOMException('Decoder failure', 'EncodingError'),
+            );
+            const { decoder, pictures, warnings, restore } = decoderOn(Decoder);
+            try {
+                for (let index = 0; index < 5; index++) {
+                    await decoder.decode(packet(index, index === 0));
+                    await yieldTask();
+                }
+                await decoder.flush(true);
+                assert.deepEqual(
+                    pictures.map(([, timing]) => Math.round(timing.timestamp * 3)),
+                    [0, 1, 2, 3, 4],
+                );
+                assert.deepEqual(warnings, []);
+                assert.equal(stats.decoders, 2);
+            } finally {
+                decoder.close();
+                restore();
+            }
+        });
+
+        test('HDR the host labels SDR is reported once as HDR_TO_SDR; strict refuses', async () => {
+            // Safari ignores the colour of the configuration and labels every picture BT.709.
+            const { Decoder } = fakeVideoDecoder(echo);
+            const config = {
+                colorSpace: { primaries: 'bt2020', transfer: 'pq', matrix: 'bt2020-ncl' },
+            };
+            const { decoder, pictures, warnings, restore } = decoderOn(Decoder, { config });
+            try {
+                for (let index = 0; index < 3; index++) await decoder.decode(packet(index));
+                await decoder.flush(true);
+                assert.equal(pictures.length, 3);
+                assert.deepEqual(warnings, [['HDR_TO_SDR', 'HDR video is converted to SDR']]);
+            } finally {
+                decoder.close();
+                restore();
+            }
+            const strict = decoderOn(Decoder, { strict: true, config });
+            try {
+                await strict.decoder.decode(packet(0));
+                await assert.rejects(strict.decoder.flush(true), { code: 'FORMAT' });
+                assert.equal(strict.pictures.length, 0);
+            } finally {
+                strict.decoder.close();
+                strict.restore();
+            }
+        });
+
         test('strict decoding fails on the first decoder error', async () => {
             const { Decoder } = fakeVideoDecoder(
                 () => new DOMException('corrupt', 'EncodingError'),
@@ -507,7 +561,8 @@ describe('webcodecs', () => {
                     })(),
                     { code: 'DECODE' },
                 );
-                assert.equal(stats.decoders, MAX_RECOVERIES + 1);
+                // The first decoder, then one preferring software, then a decoder a restart.
+                assert.equal(stats.decoders, MAX_RECOVERIES + 2);
             } finally {
                 decoder.close();
                 restore();

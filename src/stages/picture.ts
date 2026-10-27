@@ -1,11 +1,6 @@
 import { MediaForgeError } from '../core/errors/errors';
 import { micros } from '../codecs/webcodecs/codec';
-import {
-    isHdrTransfer,
-    isHostFrame,
-    type DecodedPicture,
-    type DecodeRecovery,
-} from '../codecs/webcodecs/video';
+import { isHdrColour, isHostFrame, type DecodedPicture } from '../codecs/webcodecs/video';
 import type { PlanarVideoFrame } from '../core/contracts/picture';
 import {
     assumedYuvColour,
@@ -52,34 +47,11 @@ export type CanvasReadback = () => Uint8Array | undefined;
 let readbackCanvas: OffscreenCanvas | undefined;
 let readbackContext: OffscreenCanvasRenderingContext2D | undefined;
 
-const sdrReports = new WeakMap<DecodeRecovery, () => void>();
-
-/**
- * The toSdr of the pictures a decoder with `recovery` makes: one HDR_TO_SDR warning, or a FORMAT
- * error under strict validation.
- */
-export function sdrReport(recovery: DecodeRecovery): () => void {
-    let report = sdrReports.get(recovery);
-    if (!report) {
-        let reported = false;
-        report = () => {
-            if (recovery.strict) throw new MediaForgeError('HDR video would become SDR', 'FORMAT');
-            if (reported) return;
-            reported = true;
-            recovery.warn('HDR_TO_SDR', 'HDR video is converted to SDR');
-        };
-        sdrReports.set(recovery, report);
-    }
-    return report;
-}
+export { sdrReport } from '../codecs/webcodecs/video';
 
 /** Whether a host frame's colour is HDR or wide-gamut, which becomes SDR BT.709 as RGBA8. */
 export function isHdrFrame(frame: VideoFrame): boolean {
-    const space = frame.colorSpace;
-    return (
-        isHdrTransfer(space?.transfer as string | null | undefined) ||
-        (space?.primaries as string | null | undefined) === 'bt2020'
-    );
+    return isHdrColour(frame.colorSpace);
 }
 
 /**
