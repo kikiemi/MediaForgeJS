@@ -365,6 +365,19 @@ export async function playStreams(
             record(error);
         }
     };
+    /**
+     * Moves the paused playhead to where the media starts, past a gap before it (the encoder
+     * delay an edit list hides): Safari's playback can stall for good when that seek comes as it
+     * starts playing.
+     */
+    const startAtMedia = async (): Promise<void> => {
+        const ranges = media.buffered;
+        if (!media.paused || !ranges.length || ranges.start(0) <= media.currentTime + 0.001) return;
+        const start = ranges.start(0);
+        // Before metadata (HAVE_NOTHING) the time is only where playback will begin.
+        if (media.readyState === 0) media.currentTime = start;
+        else await event(media, ['seeked'], () => (media.currentTime = start), true);
+    };
 
     /** The next unit of a feed's stream. */
     const pull = async (feed: Feed): Promise<IteratorResult<HlsPartData>> => {
@@ -520,6 +533,7 @@ export async function playStreams(
             if (!started) {
                 started = true;
                 if (autoplay) {
+                    await startAtMedia();
                     const playing = media.play();
                     void Promise.resolve(playing).catch(record);
                 }
