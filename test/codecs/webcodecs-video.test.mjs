@@ -975,12 +975,33 @@ describe('webcodecs', () => {
         });
 
         /**
-         * Frames of RGBA and I420 buffers, and VP8 codecs whose encoder takes red to the luma of
-         * `coefficient` (the red luma of a matrix) and reports BT.709 of limited range.
+         * Frames of RGBA and I420 buffers and of red canvases, and VP8 codecs whose encoder takes
+         * red to the luma of `coefficient` (the red luma of a matrix) and reports BT.709 of limited
+         * range.
          */
         const rgbCodecs = coefficient => {
+            class Canvas {
+                constructor(width, height) {
+                    Object.assign(this, { width, height });
+                }
+                getContext() {
+                    return { fillRect: () => {} };
+                }
+            }
             class Frame {
-                constructor(data, init) {
+                constructor(source, frameInit) {
+                    let [data, init] = [source, frameInit];
+                    if (source instanceof Canvas) {
+                        const { width, height } = source;
+                        data = new Uint8Array(width * height * 4);
+                        for (let at = 0; at < data.length; at += 4) data.set([255, 0, 0, 255], at);
+                        init = {
+                            ...frameInit,
+                            format: 'RGBA',
+                            codedWidth: width,
+                            codedHeight: height,
+                        };
+                    }
                     Object.assign(this, init, { data, closed: false });
                     this.visibleRect = {
                         x: 0,
@@ -1050,6 +1071,7 @@ describe('webcodecs', () => {
                 }
             }
             const restore = installGlobals({
+                OffscreenCanvas: Canvas,
                 VideoFrame: Frame,
                 VideoEncoder: Encoder,
                 VideoDecoder: Decoder,

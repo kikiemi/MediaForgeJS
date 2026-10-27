@@ -27,9 +27,9 @@ const rgbChecks = new WeakMap<object, Promise<boolean>>();
 
 /**
  * Whether the host's video encoders turn RGB frames into Y'CbCr with the matrix and range they
- * report, probed once on VP8: the luma of a red frame tells the matrix. Safari converts with
- * BT.601 and reports BT.709, so its pictures decode with shifted colours. Encoders that report no
- * matrix, or a host without VP8, are taken to.
+ * report, probed once on VP8: the luma of a canvas painted red tells the matrix. Safari converts
+ * with BT.601 and reports BT.709, so its pictures decode with shifted colours. Encoders that report
+ * no matrix, and a host without VP8 or OffscreenCanvas, are taken to.
  */
 function encodesRgbAsReported(): Promise<boolean> {
     const host = globalThis.VideoEncoder;
@@ -39,9 +39,8 @@ function encodesRgbAsReported(): Promise<boolean> {
 }
 
 async function probeRgbMatrix(): Promise<boolean> {
+    if (typeof OffscreenCanvas !== 'function') return true;
     const [width, height] = [32, 16];
-    const red = new Uint8Array(width * height * 4);
-    for (let at = 0; at < red.length; at += 4) red.set([255, 0, 0, 255], at);
     const chunks: EncodedVideoChunk[] = [];
     const pictures: VideoFrame[] = [];
     let reported: VideoColorSpaceInit | undefined;
@@ -49,12 +48,11 @@ async function probeRgbMatrix(): Promise<boolean> {
     let encoder: VideoEncoder | undefined;
     let decoder: VideoDecoder | undefined;
     try {
-        frame = new VideoFrame(red, {
-            format: 'RGBA',
-            codedWidth: width,
-            codedHeight: height,
-            timestamp: 0,
-        });
+        const canvas = new OffscreenCanvas(width, height);
+        const context = canvas.getContext('2d')!;
+        context.fillStyle = '#f00';
+        context.fillRect(0, 0, width, height);
+        frame = new VideoFrame(canvas, { timestamp: 0 });
         encoder = new VideoEncoder({
             output: (chunk, metadata) => {
                 chunks.push(chunk);
