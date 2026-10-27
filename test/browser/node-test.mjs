@@ -73,6 +73,17 @@ export function startFile() {
 
 const reason = value => (typeof value === 'string' ? value : '');
 
+/**
+ * An error as text: its name and message, then its stack. Chromium's stack starts with the
+ * message; Firefox's and Safari's hold the frames alone.
+ */
+export function errorText(error) {
+    const text = String(error);
+    const stack = error?.stack;
+    if (typeof stack !== 'string' || !stack) return text;
+    return stack.includes(text) ? stack : `${text}\n${stack}`;
+}
+
 /** How long a test may run, unless its `timeout` option says otherwise. */
 const TIMEOUT_MS = 120000;
 
@@ -158,7 +169,7 @@ export async function runFile(onTest = () => {}) {
                 reason: skippedInside ?? reason(isTodo),
                 ms,
                 diagnostics,
-                ...(error && status === 'fail' && { error: String(error?.stack ?? error) }),
+                ...(error && status === 'fail' && { error: errorText(error) }),
             });
         }
         if (!skip) for (const hook of suite.after) await hook();

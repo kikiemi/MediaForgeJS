@@ -18,17 +18,44 @@ export async function hostVp8() {
     );
 }
 
+/** ISO/IEC 23091-2 code points of the WebCodecs colour names an encoder reports. */
+const CODES = {
+    primaries: { bt709: 1, bt470bg: 5, smpte170m: 6, bt2020: 9 },
+    transfer: { bt709: 1, smpte170m: 6, 'iec61966-2-1': 13, pq: 16, hlg: 18 },
+    matrix: { rgb: 0, bt709: 1, bt470bg: 5, smpte170m: 6, 'bt2020-ncl': 9 },
+};
+
+/**
+ * The colour the encoder reports it converted the RGBA pictures to (Chromium on Windows: BT.709 in
+ * full range), as ISO code points; BT.601 in limited range where it reports none.
+ */
+function reportedColour(space) {
+    const [primaries, transfer, matrix] = ['primaries', 'transfer', 'matrix'].map(
+        field => CODES[field][space?.[field]],
+    );
+    return matrix === undefined
+        ? { primaries: 6, transfer: 6, matrix: 6, fullRange: false }
+        : {
+              primaries: primaries ?? 2,
+              transfer: transfer ?? 2,
+              matrix,
+              fullRange: space.fullRange === true,
+          };
+}
+
 /**
  * `frames` pictures of the pattern (default 15, ten per second, keyframes every five) as VP8 in
- * WebM, encoded by the browser: from `start` seconds, with `colour` as the track's colour, an
- * alpha picture (the colour picture's own bytes) when `alpha`, and `damage(chunk, index)`
- * replacing chunks.
+ * WebM, encoded by the browser: from `start` seconds, with `colour` as the track's colour (else
+ * the one the encoder reports), an alpha picture (the colour picture's own bytes) when `alpha`,
+ * and `damage(chunk, index)` replacing chunks.
  */
 export async function patternClip({ frames = 15, start = 0, alpha = false, colour, damage } = {}) {
     const chunks = [];
     let failure;
+    let reported;
     const encoder = new VideoEncoder({
-        output: chunk => {
+        output: (chunk, metadata) => {
+            if (metadata?.decoderConfig) reported ??= metadata.decoderConfig.colorSpace ?? null;
             const data = new Uint8Array(chunk.byteLength);
             chunk.copyTo(data);
             chunks.push({
@@ -64,7 +91,7 @@ export async function patternClip({ frames = 15, start = 0, alpha = false, colou
             mode: 'standard',
             maxFragmentDuration: 2,
             autoSync: true,
-            videoColour: colour ?? { primaries: 6, transfer: 6, matrix: 6, fullRange: false },
+            videoColour: colour ?? reportedColour(reported),
             video: { id: 1, type: 'video', ...VP8, alphaMode: alpha },
         },
         sink,

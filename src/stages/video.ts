@@ -107,6 +107,7 @@ export function transformStage(
         emit: EmitPicture,
     ): void => {
         const transformer = transformerFor(frame);
+        const toSdr = picture.data.kind === 'frame' ? picture.data.toSdr : undefined;
         let output: VideoFrame;
         try {
             output = transformer.apply(
@@ -114,7 +115,7 @@ export function transformStage(
                 micros(picture.timestamp),
                 micros(picture.duration),
                 paint,
-                picture.data.kind === 'frame' ? picture.data.toSdr : undefined,
+                toSdr,
             );
         } catch (error) {
             if (owned) frame.close();
@@ -123,9 +124,12 @@ export function transformStage(
         if (output === frame && !owned) return emit(picture);
         if (!owned || output !== frame) picture.close();
         if (owned && output !== frame) frame.close();
+        // A retimed frame or a view of it keeps the source's colour, so HDR is still reported when
+        // it becomes RGBA (hosts such as Firefox output frames without a duration, which retimes
+        // every one); a drawn frame is SDR already.
         emit(
             new Picture(
-                { kind: 'frame', frame: output },
+                { kind: 'frame', frame: output, toSdr },
                 picture.timestamp,
                 picture.duration,
                 transformer.readback(),

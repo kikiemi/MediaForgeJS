@@ -254,6 +254,24 @@ export function xiphHeaders(config: Uint8Array): Uint8Array[] | undefined {
     return lengths.map(length => config.subarray(offset, (offset += length)));
 }
 
+/**
+ * The short and long block sizes and the mode flags of Matroska/Xiph-laced Vorbis configuration,
+ * which time its audio packets; undefined when the configuration is malformed.
+ */
+export function vorbisBlocks(
+    config: Uint8Array,
+): { small: number; large: number; modes: readonly boolean[] } | undefined {
+    const [identification, , setup] = xiphHeaders(config) ?? [];
+    if (identification?.length !== 30 || !setup) return undefined;
+    const sizes = identification[28]!;
+    try {
+        const modes = vorbisModes(setup, identification[11]!);
+        return { small: 1 << (sizes & 15), large: 1 << (sizes >>> 4), modes };
+    } catch {
+        return undefined;
+    }
+}
+
 export function vorbisCodecConfig(headers: readonly Uint8Array[]): Uint8Array {
     const laces: number[] = [];
     for (const header of headers.slice(0, 2)) {

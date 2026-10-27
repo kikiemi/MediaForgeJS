@@ -51,6 +51,9 @@ function driverOf(name, port) {
                         ...(headed ? [] : ['--headless=new']),
                         ...(isRoot() ? ['--no-sandbox', '--disable-dev-shm-usage'] : []),
                         '--autoplay-policy=no-user-gesture-required',
+                        // Heap bounds measure what the work holds: gc() and exact heap sizes.
+                        '--js-flags=--expose-gc',
+                        '--enable-precise-memory-info',
                     ],
                 },
             },

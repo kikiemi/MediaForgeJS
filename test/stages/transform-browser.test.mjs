@@ -244,9 +244,12 @@ describe('stages', { skip: !inBrowser && 'runs in a browser (npm run test:browse
                 VideoEncoder.prototype.encode = encode;
             }
             assert(handed.length > 0, 'the encoder received frames');
+            // A decoder of RGB pictures (Firefox's gives BGRX) leaves no planes to move: they are
+            // drawn.
+            if (!/^(I420|NV12)/.test(decoded[0]?.format ?? ''))
+                return t.skip(`the browser decodes VP8 to ${decoded[0]?.format}, not 4:2:0`);
             for (const { format } of handed) assert.match(format, /^(I420|NV12)/);
-            if (/^(I420|NV12)/.test(decoded[0]?.format ?? ''))
-                assert.equal(handed[0].colour, decoded[0].colour, 'the decoded colour is kept');
+            assert.equal(handed[0].colour, decoded[0].colour, 'the decoded colour is kept');
         });
     });
 

@@ -128,9 +128,18 @@ async function repeatedFragments(file, bytes) {
     return { blob: new Blob(parts, { type: 'video/mp4' }), seconds: copies };
 }
 
-/** The peak JS heap while `work` runs, or 0 where the browser does not report it. */
+/**
+ * The peak JS heap while `work` runs, or 0 where the browser does not report it. A sample past
+ * MAX_HEAP_BYTES counts what survives a collection where the page may collect (the runner exposes
+ * gc() in Chromium): garbage the browser has not collected yet is not held by the work.
+ */
 async function peakHeapOf(work) {
-    const used = () => performance.memory?.usedJSHeapSize ?? 0;
+    const used = () => {
+        const size = performance.memory?.usedJSHeapSize ?? 0;
+        if (size < MAX_HEAP_BYTES || typeof globalThis.gc !== 'function') return size;
+        globalThis.gc();
+        return performance.memory.usedJSHeapSize;
+    };
     let peak = used();
     const sampler = setInterval(() => (peak = Math.max(peak, used())), 50);
     try {

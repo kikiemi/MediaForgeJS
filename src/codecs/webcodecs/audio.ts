@@ -11,6 +11,7 @@ import { flacStreamHeader } from '../../core/codec-config/audio/flac-frame';
 import { aacCodecString, readAacAudioObjectType } from '../../core/codec-config/audio/adts';
 import { downmixChannels } from '../pcm/audio-buffer-tools';
 import { opusHeadPacket } from '../../core/codec-config/audio/opus-head';
+import { vorbisBlocks, vorbisPacketBlock } from '../../core/codec-config/audio/vorbis-headers';
 import { QueueGate, bufferCopy, closeCodec, codecError } from './codec';
 import { copyAudioPlanes } from './audio-data';
 
@@ -19,6 +20,9 @@ const QUEUE_LIMIT = 16;
 
 /** Samples of an AAC-LC frame, which is also the encoder delay AAC-LC encoders have. */
 const AAC_FRAME = 1024;
+
+/** The encoder delay of Apple's AudioToolbox AAC-LC encoder. */
+const TOOLBOX_AAC_DELAY = 2112;
 
 /** Samples of silence the encoder delay probe encodes: four whole AAC frames. */
 const PROBE_FRAMES = 4 * AAC_FRAME;
@@ -284,6 +288,12 @@ export class HostAudioEncoder {
     /** Packets delivered to the output. */
     packets = 0;
     hostFailure: Error | undefined;
+    /**
+     * What times Vorbis packets, read from the reported headers, and the block of the last packet:
+     * a packet lasts a quarter of its block and the previous one, which hosts misreport (Firefox
+     * gives every packet 64 samples).
+     */
+    private vorbis?: NonNullable<ReturnType<typeof vorbisBlocks>> & { previous?: number };
 
     constructor(
         readonly config: AudioEncoderConfig,
@@ -372,7 +382,7 @@ export class HostAudioEncoder {
                 {
                     data,
                     timestamp: chunk.timestamp / 1e6,
-                    duration: (chunk.duration ?? 0) / 1e6,
+                    duration: this.durationOf(chunk, data),
                     isKeyframe: true,
                     trackType: 'audio',
                 },
@@ -382,6 +392,18 @@ export class HostAudioEncoder {
         } catch (error) {
             this.lifetime.record(error);
         }
+    }
+
+    /** Seconds of `chunk`: by its blocks for Vorbis, else as the host says. */
+    private durationOf(chunk: EncodedAudioChunk, data: Uint8Array): number {
+        if (this.config.codec === 'vorbis' && this.description)
+            this.vorbis ??= vorbisBlocks(this.description);
+        const vorbis = this.vorbis;
+        if (!vorbis) return (chunk.duration ?? 0) / 1e6;
+        const block = vorbisPacketBlock(data, vorbis.modes, vorbis.small, vorbis.large);
+        const samples = vorbis.previous === undefined ? 0 : (vorbis.previous + block) / 4;
+        vorbis.previous = block;
+        return samples / this.config.sampleRate;
     }
 
     private check(): void {
@@ -471,8 +493,10 @@ export class HostAudioEncoder {
 /**
  * The encoder delay, in samples, of the host's AAC-LC encoder for `config`: 1024, unless the
  * encoder gives back no more frames than its input fills, so that its output starts with the first
- * input sample (Chromium on Windows), then 0. Asked once per AudioEncoder class and configuration
- * by encoding four frames of silence; a probe that fails, and the other AAC types, keep 1024.
+ * input sample (Chromium on Windows), then 0, or three frames more, as Apple's AudioToolbox encoder
+ * does with its 2112 samples (Chromium on macOS, which leaves them in), then 2112. Asked once per
+ * AudioEncoder class and configuration by encoding four frames of silence; a probe that fails, and
+ * the other AAC types, keep 1024.
  */
 export function hostAacPriming(config: AudioEncoderConfig): Promise<number> {
     if (mp4aAudioObjectType(config.codec) !== 2) return Promise.resolve(AAC_FRAME);
@@ -496,7 +520,8 @@ async function probeAacPriming(config: AudioEncoderConfig): Promise<number> {
         );
         await encoder.encodePlanes(silence, 0);
         await encoder.flush();
-        return encoder.packets * AAC_FRAME < PROBE_FRAMES + AAC_FRAME ? 0 : AAC_FRAME;
+        const extra = encoder.packets - PROBE_FRAMES / AAC_FRAME;
+        return extra <= 0 ? 0 : extra >= 3 ? TOOLBOX_AAC_DELAY : AAC_FRAME;
     } catch {
         return AAC_FRAME;
     } finally {

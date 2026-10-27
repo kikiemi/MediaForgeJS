@@ -1,10 +1,14 @@
 import { CodecLifetime } from '../../codecs/shared/codec-lifetime';
 import type { AudioOutputMuxer } from '../../core/contracts/writer';
+import type { EncodedPacket } from '../../core/model/media';
 import { MediaForgeError } from '../../core/errors/errors';
 import { mp4aAudioObjectType } from '../../core/model/codec-strings';
 import { HostAudioEncoder, hostAacPriming } from '../../codecs/webcodecs/audio';
 import { isCodecFailure } from '../../codecs/webcodecs/codec';
 import { hostSupports } from '../../codecs/webcodecs/support';
+
+/** AAC packets held back until the sound ends, more than the padding of any encoder reaches. */
+const TRAILING_AAC_PACKETS = 2;
 
 /** An encoder's first configuration record is an OpusHead (RFC 7845 section 5.1). */
 function isOpusHead(config: Uint8Array): boolean {
@@ -85,6 +89,18 @@ export async function streamHostAudio(
         // as packets read from a file are; muxers subtract the pre-skip from there (Matroska's
         // CodecDelay, the MP4 edit, Ogg's granules).
         let shift = 0;
+        // The last AAC packets wait for the end of the sound: an encoder that pads its input to
+        // whole frames on top of its delay (Apple's) ends with a packet that decodes past both,
+        // which is left out so that the media ends with the sound.
+        const aac = mp4aAudioObjectType(config.codec) !== null;
+        const held: [EncodedPacket, Uint8Array | undefined][] = [];
+        let releasedSamples = 0;
+        const release = (count: number): void => {
+            for (const [packet, description] of held.splice(0, count)) {
+                releasedSamples += Math.round(packet.duration * config.sampleRate);
+                muxer.addAudioChunk(packet, description);
+            }
+        };
         try {
             encoder = new HostAudioEncoder(config, lifetime, (packet, description) => {
                 if (description && !described) {
@@ -98,10 +114,15 @@ export async function streamHostAudio(
                         muxer.setAudioPriming?.(priming, expectedFrames);
                     }
                 }
-                muxer.addAudioChunk(
-                    shift ? { ...packet, timestamp: packet.timestamp + shift } : packet,
-                    description,
-                );
+                if (!aac) {
+                    muxer.addAudioChunk(
+                        shift ? { ...packet, timestamp: packet.timestamp + shift } : packet,
+                        description,
+                    );
+                    return;
+                }
+                held.push([packet, description]);
+                if (held.length > TRAILING_AAC_PACKETS) release(1);
             });
         } catch (error) {
             if (fallback && isCodecFailure(error)) return fellBack();
@@ -124,6 +145,9 @@ export async function streamHostAudio(
         lifetime.check();
         await active.flush();
         if (active.packets === 0) return fallback ? fellBack() : false;
+        // A held packet that starts past the delay and the sound decodes padding alone.
+        while (held.length && releasedSamples < (priming ?? 0) + frames) release(1);
+        held.length = 0;
         if (expectedFrames === undefined && priming !== undefined)
             muxer.setAudioPriming?.(priming, frames);
         muxer.setValidSamples?.(frames);

@@ -59,6 +59,8 @@ const REORDER_LIMIT = 16;
 
 /** Consecutive decoder restarts without a decoded frame before the damage is treated as fatal. */
 export const MAX_RECOVERIES = 16;
+/** Bytes of decoded packets a host decoder keeps to decode their group again after a failure. */
+const REPLAY_BYTES = 16 * 2 ** 20;
 
 /** ISO/IEC 23091-2 code points and the WebCodecs registry names that describe them. */
 const PRIMARIES: Readonly<Record<number, string>> = {
@@ -206,12 +208,20 @@ export class HostVideoDecoder implements FrameDecoder {
     private generation = 0;
     /**
      * Packets the decoder holds, in decode order and keyed by chunk timestamp, with their exact
-     * timing.
+     * timing; `hidden` for a packet decoded again whose picture was output before.
      */
     private readonly pending = new Map<
         number,
-        FrameTiming & { readonly packet: VideoPacketInput }
+        FrameTiming & { readonly packet: VideoPacketInput; readonly hidden?: boolean }
     >();
+    /**
+     * The packets of this decoder from the keyframe the oldest held packet depends on, in decode
+     * order, for decoding that group again after a failure; undefined past REPLAY_BYTES.
+     */
+    private group: VideoPacketInput[] | undefined = [];
+    private groupBytes = 0;
+    /** Whether a group was decoded again since the last picture. */
+    private replayed = false;
     private readonly damage: DamageLog;
     private broken: MediaForgeError | undefined;
     private firstError: MediaForgeError | undefined;
@@ -257,11 +267,17 @@ export class HostVideoDecoder implements FrameDecoder {
         const key = frame.timestamp;
         const held = this.pending.get(key);
         for (const pending of this.pending.keys()) if (pending <= key) this.pending.delete(pending);
+        this.trimGroup();
+        if (held?.hidden) {
+            frame.close();
+            return;
+        }
         const timing: FrameTiming = held
             ? { timestamp: held.timestamp, duration: held.duration }
             : { timestamp: key / 1e6, duration: (frame.duration ?? 0) / 1e6 };
         this.outputs++;
         this.restarts = 0;
+        this.replayed = false;
         try {
             this.output(frame, timing);
         } catch (error) {
@@ -292,13 +308,51 @@ export class HostVideoDecoder implements FrameDecoder {
      * Replaces a failed decoder. The packets it still held are dropped up to the first keyframe
      * after the oldest of them, which the failure may have come from; that keyframe and the packets
      * after it are decoded again.
+     *
+     * A decoder that outputs each picture late (Firefox's, one packet behind) loses the pictures
+     * before a failing keyframe with it, so the oldest held packet need not be the failing one.
+     * Where it is a delta packet held with a later keyframe, its group is first decoded again from
+     * its keyframe up to that keyframe, the pictures output before hidden, and flushed out: only
+     * when that fails again are its packets dropped.
      */
-    private restart(): void {
-        if (++this.restarts > MAX_RECOVERIES)
-            throw this.lifetime.record(this.firstError ?? this.broken!);
-        this.broken = undefined;
-        const held = [...this.pending.values()];
+    private async restart(): Promise<void> {
+        let held = this.heldPackets();
+        for (;;) {
+            if (++this.restarts > MAX_RECOVERIES)
+                throw this.lifetime.record(this.firstError ?? this.broken!);
+            this.broken = undefined;
+            const replay = this.replayable(held);
+            this.reopen();
+            if (!replay) break;
+            this.replayed = true;
+            const key = held.findIndex(packet => packet.isKeyframe);
+            for (const packet of replay) if (!this.broken) this.submit(packet, true);
+            for (const packet of held.slice(0, key)) if (!this.broken) this.submit(packet);
+            await this.drain();
+            if (this.broken) {
+                held = [...this.heldPackets(), ...held.slice(key)];
+                continue;
+            }
+            for (const packet of held.slice(key)) if (!this.broken) this.submit(packet);
+            return;
+        }
+        const resume = held.findIndex((packet, index) => index > 0 && packet.isKeyframe);
+        for (const packet of resume < 0 ? held : held.slice(0, resume))
+            this.damage.drop(packet.timestamp);
+        if (resume >= 0)
+            for (const packet of held.slice(resume)) if (!this.broken) this.submit(packet);
+    }
+
+    /** The packets the decoder holds whose pictures were not output, in decode order. */
+    private heldPackets(): VideoPacketInput[] {
+        return [...this.pending.values()].filter(entry => !entry.hidden).map(entry => entry.packet);
+    }
+
+    /** A new decoder in place of the current one, holding nothing and waiting for a keyframe. */
+    private reopen(): void {
         this.pending.clear();
+        this.group = [];
+        this.groupBytes = 0;
         this.gate.dispose();
         closeCodec(this.decoder);
         try {
@@ -307,17 +361,70 @@ export class HostVideoDecoder implements FrameDecoder {
             throw this.lifetime.record(error);
         }
         this.awaitingKey = true;
-        const resume = held.findIndex((entry, index) => index > 0 && entry.packet.isKeyframe);
-        for (const entry of resume < 0 ? held : held.slice(0, resume))
-            this.damage.drop(entry.timestamp);
-        if (resume >= 0)
-            for (const entry of held.slice(resume)) if (!this.broken) this.submit(entry.packet);
     }
 
-    private submit(packet: VideoPacketInput): void {
+    /** Waits until the decoder output every packet it holds; a failure breaks it. */
+    private async drain(): Promise<void> {
+        let failed: unknown;
+        await this.lifetime.waitFor(
+            this.decoder.flush().then(
+                () => undefined,
+                error => {
+                    failed = error;
+                },
+            ),
+        );
+        if (failed !== undefined && !this.broken) this.onError(failed, this.generation);
+    }
+
+    /**
+     * The packets before the oldest of `held` in its group, from its keyframe, to decode again
+     * before `held`: only where the oldest is a delta packet held with a later keyframe, this
+     * decoder kept its group, and no group was decoded again since the last picture.
+     */
+    private replayable(held: readonly VideoPacketInput[]): VideoPacketInput[] | undefined {
+        const first = held[0];
+        if (!first || first.isKeyframe || this.replayed || !this.group) return undefined;
+        if (!held.some(packet => packet.isKeyframe)) return undefined;
+        const at = this.group.indexOf(first);
+        let key = at - 1;
+        while (key >= 0 && !this.group[key]!.isKeyframe) key--;
+        return key < 0 ? undefined : this.group.slice(key, at);
+    }
+
+    /** Keeps `packet` in the group of the held packets, or gives the group up past REPLAY_BYTES. */
+    private remember(packet: VideoPacketInput): void {
+        if (packet.isKeyframe && (this.pending.size === 1 || !this.group)) {
+            this.group = [];
+            this.groupBytes = 0;
+        }
+        if (!this.group) return;
+        this.group.push(packet);
+        this.groupBytes += packet.data.byteLength;
+        if (this.groupBytes > REPLAY_BYTES) this.group = undefined;
+    }
+
+    /** Lets go of the group's packets before the keyframe the oldest held packet depends on. */
+    private trimGroup(): void {
+        const group = this.group;
+        if (!group?.length) return;
+        const oldest = this.pending.values().next().value?.packet;
+        const at = oldest ? group.indexOf(oldest) : -1;
+        let key = at < 0 ? group.length - 1 : at;
+        while (key > 0 && !group[key]!.isKeyframe) key--;
+        if (key === 0) return;
+        for (const packet of group.splice(0, key)) this.groupBytes -= packet.data.byteLength;
+    }
+
+    private submit(packet: VideoPacketInput, hidden = false): void {
         let key = micros(packet.timestamp);
         while (this.pending.has(key)) key++;
-        this.pending.set(key, { timestamp: packet.timestamp, duration: packet.duration, packet });
+        this.pending.set(key, {
+            timestamp: packet.timestamp,
+            duration: packet.duration,
+            packet,
+            ...(hidden ? { hidden } : {}),
+        });
         try {
             this.decoder.decode(
                 new EncodedVideoChunk({
@@ -330,11 +437,16 @@ export class HostVideoDecoder implements FrameDecoder {
         } catch (error) {
             this.pending.delete(key);
             this.onError(error, this.generation, this.decoder.state === 'configured');
-            this.damage.drop(packet.timestamp);
+            if (!hidden) this.damage.drop(packet.timestamp);
             this.awaitingKey = true;
             return;
         }
 
+        this.remember(packet);
+        if (hidden) {
+            this.awaitingKey = false;
+            return;
+        }
         this.submitted++;
         if (this.awaitingKey) this.damage.report(packet.timestamp);
         this.awaitingKey = false;
@@ -342,14 +454,14 @@ export class HostVideoDecoder implements FrameDecoder {
 
     async decode(packet: VideoPacketInput): Promise<void> {
         this.lifetime.check();
-        if (this.broken) this.restart();
+        if (this.broken) await this.restart();
         if (this.awaitingKey && !packet.isKeyframe) return this.damage.skip(packet.timestamp);
         await this.gate.until(
             () => this.decoder.decodeQueueSize <= DECODE_AHEAD || !!this.broken,
             this.lifetime,
         );
         if (this.broken) {
-            this.restart();
+            await this.restart();
             if (this.awaitingKey && !packet.isKeyframe) return this.damage.skip(packet.timestamp);
         }
         this.submit(packet);
@@ -358,26 +470,17 @@ export class HostVideoDecoder implements FrameDecoder {
     async flush(final: boolean): Promise<void> {
         this.lifetime.check();
         for (;;) {
-            if (!this.broken && this.submitted) {
-                let failed: unknown;
-                await this.lifetime.waitFor(
-                    this.decoder.flush().then(
-                        () => undefined,
-                        error => {
-                            failed = error;
-                        },
-                    ),
-                );
-                if (failed !== undefined && !this.broken) this.onError(failed, this.generation);
-            }
+            if (!this.broken && this.submitted) await this.drain();
 
             this.lifetime.check();
             if (!this.broken) break;
-            this.restart();
+            await this.restart();
             if (!this.pending.size) break;
         }
 
         this.pending.clear();
+        this.group = [];
+        this.groupBytes = 0;
         this.damage.report(undefined);
         this.awaitingKey = true;
         if (final && this.submitted && !this.outputs)
@@ -392,6 +495,7 @@ export class HostVideoDecoder implements FrameDecoder {
         this.closed = true;
         this.gate.dispose();
         this.pending.clear();
+        this.group = undefined;
         closeCodec(this.decoder);
     }
 }

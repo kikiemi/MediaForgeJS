@@ -1,6 +1,6 @@
 // The browser test page: imports each test file the runner lists, runs its tests with the
 // node:test of node-test.mjs and keeps the results in window.__testReport for the runner to read.
-import { runFile, startFile } from './node-test.mjs';
+import { errorText, runFile, startFile } from './node-test.mjs';
 
 const report = {
     done: false,
@@ -11,9 +11,7 @@ const report = {
 };
 window.__testReport = report;
 addEventListener('error', event => report.pageErrors.push(String(event.message)));
-addEventListener('unhandledrejection', event =>
-    report.pageErrors.push(String(event.reason?.stack ?? event.reason)),
-);
+addEventListener('unhandledrejection', event => report.pageErrors.push(errorText(event.reason)));
 
 const files = await (await fetch('/__files.json')).json();
 for (const file of files) {
@@ -26,9 +24,7 @@ for (const file of files) {
             report.current = `${file} > ${name}`;
         });
     } catch (error) {
-        results = [
-            { name: 'the file loads', status: 'fail', error: String(error?.stack ?? error) },
-        ];
+        results = [{ name: 'the file loads', status: 'fail', error: errorText(error) }];
     }
     report.files.push({ file, results });
 }

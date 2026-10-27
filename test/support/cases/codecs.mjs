@@ -458,8 +458,11 @@ const hostVideoEncode = codec => ({
         const { MediaForge, inspect } = await import('mediaforgejs');
         const lite = new MediaForge({ plugins: [] });
         const name = VIDEO_NAMES[codec];
-        const declared = (await lite.capabilities()).video.encode.includes(name);
         const to = codec === 'avc1' || codec === 'hvc1' ? 'mp4' : 'webm';
+        // Asked at the size encoded: a hardware encoder may take no picture this small (NVIDIA's
+        // HEVC encoder starts at 144 pixels).
+        const asked = { to, width: 64, height: 48 };
+        const declared = (await lite.capabilities(asked)).video.encode.includes(name);
         const families = codec === 'avc1' ? AVC : codec === 'hvc1' ? HEVC : [codec, 'vp9'];
         const { value, error, configured } = await hostRun(
             'VideoEncoder',

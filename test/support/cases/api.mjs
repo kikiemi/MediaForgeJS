@@ -250,6 +250,11 @@ export const cases = {
             const context = canvas.getContext('2d');
             const stream = canvas.captureStream(0);
             const [track] = stream.getVideoTracks();
+            // Firefox asks the stream for a frame, the others the track.
+            const requestFrame =
+                typeof track.requestFrame === 'function'
+                    ? () => track.requestFrame()
+                    : () => stream.requestFrame();
             let encoded = 0;
             const recording = (await api()).recordStream(stream, {
                 to,
@@ -259,7 +264,7 @@ export const cases = {
             for (let index = 0; index < 200 && encoded < 3; index++) {
                 context.fillStyle = `rgb(${(index * 20) % 256}, 80, 160)`;
                 context.fillRect(0, 0, 64, 48);
-                track.requestFrame();
+                requestFrame();
                 await new Promise(resolve => setTimeout(resolve, 20));
             }
             const result = await recording.stop();

@@ -62,11 +62,13 @@ const PLANS = [
     ['wav', { to: 'mp4', audio: { codec: 'pcm' } }, 'copy', [copy('audio', 'pcm-s16le')]],
     ['wav', { to: 'wav', copy: false }, 'reencode', [encode('audio', 'pcm-s16')]],
     ['webm', { to: 'webm', copy: false }, 'DECODE'],
-    // Ogg takes FLAC where no host Opus encoder is (CODEC_SUBSTITUTED); Vorbis is copied only.
+    // Ogg takes FLAC where no host Opus encoder is (CODEC_SUBSTITUTED); it writes no Vorbis.
     ['adts', 'ogg', 'reencode', [encode('audio', 'flac')]],
     ['adts', { to: 'ogg', optionPolicy: 'strict' }, 'FORMAT'],
     ['adts', { to: 'ogg', audio: { codec: 'flac' } }, 'reencode', [encode('audio', 'flac')]],
-    ['adts', { to: 'ogg', audio: { codec: 'vorbis' } }, 'ENCODE'],
+    ['adts', { to: 'ogg', audio: { codec: 'vorbis' } }, 'FORMAT'],
+    // Vorbis is the host's to encode: WebM holds nothing else the library encodes.
+    ['adts', { to: 'webm', audio: { codec: 'vorbis' } }, 'ENCODE'],
     ['wav', { to: 'mkv', audio: { codec: 'opus' } }, 'reencode', [encode('audio', 'mp4a.40.2')]],
     ['wav', { to: 'webm', copy: false }, 'ENCODE'],
     // 'opus' names its codec: Opus is copied, other audio needs an Opus encoder and is never
