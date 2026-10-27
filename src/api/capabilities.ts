@@ -106,12 +106,15 @@ function hostOrLibrary(hostOnly: readonly string[], hosted: readonly string[]): 
 /**
  * A small picture of `format` the host's decoder is tried on: BMP and ICO by the library's
  * encoders, AVIF, HEIF and JPEG XL from ./image-samples; none of JPEG, which only a canvas makes.
+ * The icon is 16 pixels a side, the smallest common icon: Safari decodes none of 1 or 2.
  */
 async function imageSample(format: string): Promise<Uint8Array<ArrayBuffer> | undefined> {
     if (format === 'bmp' || format === 'ico') {
         const { encodeBmp, encodeIco } = await import('../codecs/image/encoders');
-        const pixel = { data: new Uint8Array([0, 0, 0, 255]), width: 1, height: 1 };
-        return format === 'bmp' ? encodeBmp(pixel) : encodeIco(pixel);
+        const side = format === 'bmp' ? 1 : 16;
+        const data = new Uint8Array(side * side * 4).fill(255);
+        const picture = { data, width: side, height: side };
+        return format === 'bmp' ? encodeBmp(picture) : encodeIco(picture);
     }
     const samples = await import('./image-samples');
     return samples.hasImageSample(format) ? samples.imageSample(format) : undefined;

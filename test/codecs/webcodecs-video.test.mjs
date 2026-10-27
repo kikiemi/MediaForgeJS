@@ -79,14 +79,14 @@ function fakeVideoDecoder(respond, { hold = 0, refuseConfig = false } = {}) {
 }
 
 /** A HostVideoDecoder on `Decoder`, collecting its pictures and warnings. */
-function decoderOn(Decoder, { strict = false } = {}) {
+function decoderOn(Decoder, { strict = false, config = {} } = {}) {
     const restore = installGlobals({ VideoDecoder: Decoder, EncodedVideoChunk: FakeChunk });
     const pictures = [];
     const warnings = [];
     const lifetime = new CodecLifetime();
     try {
         const decoder = new HostVideoDecoder(
-            { codec: 'vp8', codedWidth: 16, codedHeight: 16 },
+            { codec: 'vp8', codedWidth: 16, codedHeight: 16, ...config },
             lifetime,
             (picture, timing) => pictures.push([picture, timing]),
             { strict, warn: (code, message) => warnings.push([code, message]) },
@@ -460,6 +460,60 @@ describe('webcodecs', () => {
             }
         });
 
+        test('a decoder failing before its first picture is retried in software', async () => {
+            // As Safari's VP9 decoder in a macOS virtual machine: the hardware one fails, the
+            // software one decodes every packet again.
+            const { Decoder, stats } = fakeVideoDecoder((decoder, chunk) =>
+                decoder.config.hardwareAcceleration === 'prefer-software'
+                    ? echo(decoder, chunk)
+                    : new DOMException('Decoder failure', 'EncodingError'),
+            );
+            const { decoder, pictures, warnings, restore } = decoderOn(Decoder);
+            try {
+                for (let index = 0; index < 5; index++) {
+                    await decoder.decode(packet(index, index === 0));
+                    await yieldTask();
+                }
+                await decoder.flush(true);
+                assert.deepEqual(
+                    pictures.map(([, timing]) => Math.round(timing.timestamp * 3)),
+                    [0, 1, 2, 3, 4],
+                );
+                assert.deepEqual(warnings, []);
+                assert.equal(stats.decoders, 2);
+            } finally {
+                decoder.close();
+                restore();
+            }
+        });
+
+        test('HDR the host labels SDR is reported once as HDR_TO_SDR; strict refuses', async () => {
+            // Safari ignores the colour of the configuration and labels every picture BT.709.
+            const { Decoder } = fakeVideoDecoder(echo);
+            const config = {
+                colorSpace: { primaries: 'bt2020', transfer: 'pq', matrix: 'bt2020-ncl' },
+            };
+            const { decoder, pictures, warnings, restore } = decoderOn(Decoder, { config });
+            try {
+                for (let index = 0; index < 3; index++) await decoder.decode(packet(index));
+                await decoder.flush(true);
+                assert.equal(pictures.length, 3);
+                assert.deepEqual(warnings, [['HDR_TO_SDR', 'HDR video is converted to SDR']]);
+            } finally {
+                decoder.close();
+                restore();
+            }
+            const strict = decoderOn(Decoder, { strict: true, config });
+            try {
+                await strict.decoder.decode(packet(0));
+                await assert.rejects(strict.decoder.flush(true), { code: 'FORMAT' });
+                assert.equal(strict.pictures.length, 0);
+            } finally {
+                strict.decoder.close();
+                strict.restore();
+            }
+        });
+
         test('strict decoding fails on the first decoder error', async () => {
             const { Decoder } = fakeVideoDecoder(
                 () => new DOMException('corrupt', 'EncodingError'),
@@ -507,7 +561,8 @@ describe('webcodecs', () => {
                     })(),
                     { code: 'DECODE' },
                 );
-                assert.equal(stats.decoders, MAX_RECOVERIES + 1);
+                // The first decoder, then one preferring software, then a decoder a restart.
+                assert.equal(stats.decoders, MAX_RECOVERIES + 2);
             } finally {
                 decoder.close();
                 restore();
@@ -913,6 +968,151 @@ describe('webcodecs', () => {
                     );
                     assert.deepEqual(await pixels(frame), await pixels(view));
                     assert.equal(view.closed, false, 'the caller keeps the view');
+                } finally {
+                    restore();
+                }
+            }
+        });
+
+        /**
+         * Frames of RGBA and I420 buffers and of red canvases, and VP8 codecs whose encoder takes
+         * red to the luma of `coefficient` (the red luma of a matrix) and reports BT.709 of limited
+         * range.
+         */
+        const rgbCodecs = coefficient => {
+            class Canvas {
+                constructor(width, height) {
+                    Object.assign(this, { width, height });
+                }
+                getContext() {
+                    return { fillRect: () => {} };
+                }
+            }
+            class Frame {
+                constructor(source, frameInit) {
+                    let [data, init] = [source, frameInit];
+                    if (source instanceof Canvas) {
+                        const { width, height } = source;
+                        data = new Uint8Array(width * height * 4);
+                        for (let at = 0; at < data.length; at += 4) data.set([255, 0, 0, 255], at);
+                        init = {
+                            ...frameInit,
+                            format: 'RGBA',
+                            codedWidth: width,
+                            codedHeight: height,
+                        };
+                    }
+                    Object.assign(this, init, { data, closed: false });
+                    this.visibleRect = {
+                        x: 0,
+                        y: 0,
+                        width: init.codedWidth,
+                        height: init.codedHeight,
+                    };
+                    this.displayWidth = init.displayWidth ?? init.codedWidth;
+                    this.displayHeight = init.displayHeight ?? init.codedHeight;
+                    this.colorSpace = init.colorSpace ?? { matrix: 'rgb' };
+                }
+                allocationSize() {
+                    return this.data.length;
+                }
+                async copyTo(target) {
+                    target.set(this.data);
+                    const { codedWidth: width, codedHeight: height } = this;
+                    return this.format === 'I420'
+                        ? [
+                              { offset: 0, stride: width },
+                              { offset: width * height, stride: width / 2 },
+                              { offset: width * height * 1.25, stride: width / 2 },
+                          ]
+                        : [{ offset: 0, stride: width * 4 }];
+                }
+                close() {
+                    this.closed = true;
+                }
+            }
+            class Encoder {
+                state = 'unconfigured';
+                constructor(init) {
+                    this.init = init;
+                }
+                configure(config) {
+                    this.config = config;
+                    this.state = 'configured';
+                }
+                encode(frame) {
+                    const luma = Math.round(16 + 219 * coefficient * (frame.data[0] / 255));
+                    const colorSpace = { matrix: 'bt709', fullRange: false };
+                    this.init.output({ luma }, { decoderConfig: { codec: 'vp8', colorSpace } });
+                }
+                async flush() {}
+                close() {
+                    this.state = 'closed';
+                }
+            }
+            class Decoder {
+                state = 'unconfigured';
+                constructor(init) {
+                    this.init = init;
+                }
+                configure() {
+                    this.state = 'configured';
+                }
+                decode(chunk) {
+                    const [width, height] = [32, 16];
+                    const data = new Uint8Array(width * height * 1.5).fill(chunk.luma, 0, 512);
+                    this.init.output(
+                        new Frame(data, { format: 'I420', codedWidth: width, codedHeight: height }),
+                    );
+                }
+                async flush() {}
+                close() {
+                    this.state = 'closed';
+                }
+            }
+            const restore = installGlobals({
+                OffscreenCanvas: Canvas,
+                VideoFrame: Frame,
+                VideoEncoder: Encoder,
+                VideoDecoder: Decoder,
+            });
+            return { Frame, restore };
+        };
+
+        test('RGB goes as BT.709 I420 where encoders convert it unlike they report', async () => {
+            // Safari's encoders turn RGB into Y'CbCr with BT.601 and report BT.709.
+            for (const [coefficient, converted] of [
+                [0.299, true],
+                [0.2126, false],
+            ]) {
+                const { Frame, restore } = rgbCodecs(coefficient);
+                try {
+                    const red = new Uint8Array(4 * 4 * 4);
+                    for (let at = 0; at < red.length; at += 4) red.set([255, 0, 0, 255], at);
+                    const init = {
+                        format: 'RGBA',
+                        codedWidth: 4,
+                        codedHeight: 4,
+                        timestamp: 40000,
+                    };
+                    const frame = new Frame(red, init);
+                    const encodable = await encodableFrame(frame, new CodecLifetime());
+                    assert.equal(encodable !== frame, converted, `red luma ${coefficient}`);
+                    if (!converted) continue;
+                    // BT.709 red of limited range: Y 63, Cb 102, Cr 240.
+                    assert.deepEqual(
+                        [
+                            encodable.format,
+                            encodable.data[0],
+                            encodable.data[16],
+                            encodable.data[20],
+                        ],
+                        ['I420', 63, 102, 240],
+                    );
+                    assert.deepEqual(
+                        [encodable.timestamp, encodable.colorSpace.matrix, frame.closed],
+                        [40000, 'bt709', false],
+                    );
                 } finally {
                     restore();
                 }

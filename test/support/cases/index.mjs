@@ -25,8 +25,9 @@ import * as formats from './formats.mjs';
  * decode: its cells check carriage, not decoding (`npm run support` shows them as such). A case
  * is an async function, or { browser: true, run } for one that needs the browser; it is given its
  * cell (test/support/table.mjs), whose `formats` an operation's case of a target class may pick
- * from. An operation taking targets has a cell per class, 'operation/<name>/<class>'; one without,
- * 'operation/<name>'.
+ * from, and the test context, whose skip() a host case calls with its reason where the host
+ * declares what it cannot do at all. An operation taking targets has a cell per class,
+ * 'operation/<name>/<class>'; one without, 'operation/<name>'.
  * Import helpers inside the functions, so the registry loads in the browser test page.
  */
 const AREAS = { codecs, formats, api };

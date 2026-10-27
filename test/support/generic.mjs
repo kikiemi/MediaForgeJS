@@ -179,9 +179,9 @@ export function caseOf(cell, registry) {
     const own = registry.cases[cell.id];
     if (own)
         return typeof own === 'function'
-            ? { run: () => own(cell), browser: false, generic: false, structural: false }
+            ? { run: t => own(cell, t), browser: false, generic: false, structural: false }
             : {
-                  run: () => own.run(cell),
+                  run: t => own.run(cell, t),
                   browser: own.browser === true,
                   generic: false,
                   structural: false,

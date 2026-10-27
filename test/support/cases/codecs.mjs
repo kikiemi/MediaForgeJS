@@ -355,12 +355,65 @@ const hostAudioDecode = name => ({
 });
 
 /**
+ * Whether the host's VideoDecoder decodes a picture of `codec` its own VideoEncoder wrote, with
+ * or without hardware; undefined where it encodes none.
+ */
+async function hostDecodesOwn(codec) {
+    const config = { codec, width: 64, height: 48, bitrate: 500_000, framerate: 30 };
+    if (typeof VideoEncoder !== 'function') return undefined;
+    if (!(await VideoEncoder.isConfigSupported(config)).supported) return undefined;
+    const chunks = [];
+    let decoderConfig;
+    const encoder = new VideoEncoder({
+        output: (chunk, metadata) => {
+            chunks.push(chunk);
+            decoderConfig ??= metadata?.decoderConfig;
+        },
+        error: () => undefined,
+    });
+    encoder.configure(config);
+    const canvas = new OffscreenCanvas(64, 48);
+    canvas.getContext('2d').fillRect(0, 0, 64, 48);
+    const frame = new VideoFrame(canvas, { timestamp: 0 });
+    encoder.encode(frame, { keyFrame: true });
+    frame.close();
+    await encoder.flush().catch(() => undefined);
+    encoder.close();
+    if (!chunks.length) return undefined;
+    for (const hardwareAcceleration of ['no-preference', 'prefer-software']) {
+        let pictures = 0;
+        const decoder = new VideoDecoder({
+            output: picture => {
+                pictures++;
+                picture.close();
+            },
+            error: () => undefined,
+        });
+        try {
+            decoder.configure({
+                ...(decoderConfig ?? { codec, codedWidth: 64, codedHeight: 48 }),
+                hardwareAcceleration,
+            });
+            for (const chunk of chunks) decoder.decode(chunk);
+            await decoder.flush();
+        } catch {
+            // Decoded nothing with this preference.
+        }
+        if (decoder.state !== 'closed') decoder.close();
+        if (pictures) return true;
+    }
+    return false;
+}
+
+/**
  * Host decoding of video codec `codec`: frames() of the lite entry gives every picture of the
- * stream through the host exactly where capabilities() declares the host decoder, else fails.
+ * stream through the host exactly where capabilities() declares the host decoder, else fails. A
+ * host that declares the codec and decodes not even its own encoder's pictures of it (Safari's
+ * AV1 in a macOS virtual machine) skips the cell.
  */
 const hostVideoDecode = codec => ({
     browser: true,
-    run: async () => {
+    run: async (_, t) => {
         const { default: assert } = await import('node:assert/strict');
         const input = new Blob([await HOST_STREAMS[codec]()]);
         const [lite, source] = await liteAndTrack(input);
@@ -373,6 +426,8 @@ const hostVideoDecode = codec => ({
         const how = outcome(declared, configured, error);
         assert.equal(configured > 0, declared, how);
         if (!declared) return assert(error, how);
+        if (error && (await hostDecodesOwn(source.codec)) === false)
+            return t.skip(`the host declares ${source.codec} and decodes none, not its own`);
         assert(!error, how);
         assert.equal(value.length, await packetCount(input));
         assert.deepEqual(value[0], [source.width, source.height]);
