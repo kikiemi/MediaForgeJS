@@ -235,163 +235,132 @@ async function shownPicture(blob) {
 }
 
 describe('host probe', { skip: !inBrowser && 'runs in a browser (npm run test:browser)' }, () => {
-    for (const [name, settings, crop] of [
-        [
-            'cover',
-            { width: 200, height: 200, fit: 'cover' },
-            { x: 40, y: 0, width: 240, height: 240 },
-        ],
-        ['contain', { width: 200, height: 200, fit: 'contain' }, undefined],
-        [
-            'odd',
-            { crop: { x: 31, y: 17, width: 161, height: 129 } },
-            { x: 31, y: 17, width: 160, height: 128 },
-        ],
-    ])
-        test(`probe: every picture of a ${name} conversion`, { timeout: 100_000 }, async t => {
-            const out = {};
-            try {
-                const { blob } = await patternVp8();
-                const sized = settings.width !== undefined;
-                const expect = (rgba, width, height) => {
-                    const expected = transformedPattern({
-                        crop: settings.crop ? crop : undefined,
-                        width,
-                        height,
-                        fit: sized ? settings.fit : 'fill',
-                    });
-                    return +maskedDifference(rgba, expected.rgba, expected.mask).toFixed(2);
-                };
-                // Every decoded input frame drawn as the library draws a part of it.
-                const { track, packets } = await demux(blob);
-                const frames = [];
-                const decoder = new VideoDecoder({
-                    output: frame => frames.push(frame),
-                    error: () => {},
-                });
-                decoder.configure({
-                    codec: track.codec,
-                    codedWidth: track.width,
-                    codedHeight: track.height,
-                });
-                for (const packet of packets)
-                    decoder.decode(
-                        new EncodedVideoChunk({
-                            type: packet.key ? 'key' : 'delta',
-                            timestamp: Math.round(packet.timestamp * 1e6),
-                            data: packet.data,
-                        }),
-                    );
-                await decoder.flush();
-                decoder.close();
-                if (crop) {
-                    const [dw, dh] = sized
-                        ? [settings.width, settings.height]
-                        : [crop.width, crop.height];
-                    const scale = dw / crop.width;
-                    out.drawnInputs = frames.map(frame =>
-                        expect(
-                            rgbaOf(
-                                context => {
-                                    context.beginPath();
-                                    context.rect(0, 0, dw, dh);
-                                    context.clip();
-                                    context.drawImage(
-                                        frame,
-                                        -crop.x * scale,
-                                        -crop.y * scale,
-                                        frame.displayWidth * scale,
-                                        frame.displayHeight * scale,
-                                    );
-                                },
-                                dw,
-                                dh,
-                            ),
-                            dw,
-                            dh,
-                        ),
-                    );
-                }
-                for (const frame of frames) frame.close();
-
-                // What the library's conversion hands its encoder, picture by picture, and what
-                // the encoder writes.
-                const prototype = VideoEncoder.prototype;
-                const encode = prototype.encode;
-                const configure = prototype.configure;
-                const inputs = [];
-                prototype.configure = function (config) {
-                    out.encoderConfig = { ...config };
-                    return configure.call(this, config);
-                };
-                prototype.encode = function (input, options) {
-                    const width = input.displayWidth;
-                    const height = input.displayHeight;
-                    inputs.push([
-                        input.timestamp,
-                        options?.keyFrame === true,
-                        expect(
-                            rgbaOf(context => context.drawImage(input, 0, 0), width, height),
-                            width,
-                            height,
-                        ),
-                    ]);
-                    return encode.call(this, input, options);
-                };
-                let output;
-                try {
-                    output = await new MediaForge().convert(blob, {
-                        to: 'webm',
-                        video: { codec: 'vp8', bitrate: 2_000_000, ...settings },
-                    });
-                } finally {
-                    prototype.encode = encode;
-                    prototype.configure = configure;
-                }
-                out.inputs = inputs;
-                const decoded = await demux(output.blob);
-                out.chunks = decoded.packets.map(packet => [
-                    +packet.timestamp.toFixed(3),
-                    packet.key,
-                    packet.data.length,
+    test('probe: colours of canvas frames through the encoder', { timeout: 100_000 }, async t => {
+        const out = {};
+        try {
+            const colours = [
+                [255, 0, 0],
+                [0, 255, 0],
+                [0, 0, 255],
+                [128, 128, 128],
+                [200, 100, 50],
+                [30, 60, 90],
+                [235, 235, 235],
+                [20, 20, 20],
+            ];
+            const side = 32;
+            const width = side * colours.length;
+            const height = side;
+            const canvas = new OffscreenCanvas(width, height);
+            const context = canvas.getContext('2d', { alpha: false });
+            colours.forEach(([r, g, b], index) => {
+                context.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                context.fillRect(index * side, 0, side, side);
+            });
+            const rgba = context.getImageData(0, 0, width, height).data;
+            out.canvasPixels = colours.map((_, index) => [
+                ...rgba.subarray(((side / 2) * width + index * side + side / 2) * 4).slice(0, 3),
+            ]);
+            const centres = picture =>
+                colours.map((_, index) => [
+                    ...picture
+                        .subarray(((side / 2) * width + index * side + side / 2) * 4)
+                        .slice(0, 3),
                 ]);
-                const pictures = [];
-                const back = new VideoDecoder({
-                    output: frame => pictures.push(frame),
-                    error: () => {},
-                });
-                back.configure({
-                    codec: decoded.track.codec,
-                    codedWidth: decoded.track.width,
-                    codedHeight: decoded.track.height,
-                });
-                for (const packet of decoded.packets)
-                    back.decode(
-                        new EncodedVideoChunk({
-                            type: packet.key ? 'key' : 'delta',
-                            timestamp: Math.round(packet.timestamp * 1e6),
-                            data: packet.data,
-                        }),
-                    );
-                await back.flush();
-                back.close();
-                out.outputs = pictures.map(frame => {
-                    const width = frame.displayWidth;
-                    const height = frame.displayHeight;
-                    const result = [
-                        frame.timestamp,
-                        expect(
-                            rgbaOf(context => context.drawImage(frame, 0, 0), width, height),
-                            width,
-                            height,
-                        ),
-                    ];
+            const sources = {
+                canvas: () => new VideoFrame(canvas, { timestamp: 0 }),
+                rgbaBuffer: () =>
+                    new VideoFrame(rgba, {
+                        format: 'RGBA',
+                        codedWidth: width,
+                        codedHeight: height,
+                        timestamp: 0,
+                    }),
+                rgbaBufferSrgb: () =>
+                    new VideoFrame(rgba, {
+                        format: 'RGBA',
+                        codedWidth: width,
+                        codedHeight: height,
+                        timestamp: 0,
+                        colorSpace: {
+                            primaries: 'bt709',
+                            transfer: 'iec61966-2-1',
+                            matrix: 'rgb',
+                            fullRange: true,
+                        },
+                    }),
+            };
+            for (const codec of ['vp8', 'vp09.00.10.08']) {
+                for (const [name, make] of Object.entries(sources)) {
+                    const entry = (out[`${codec} ${name}`] = {});
+                    const frame = make();
+                    entry.frame = { format: frame.format, colour: frame.colorSpace?.toJSON?.() };
+                    const drawnSource = rgbaOf(c => c.drawImage(frame, 0, 0), width, height);
+                    entry.drawnSource = centres(drawnSource);
+                    const chunks = [];
+                    let decoderConfig;
+                    const encoder = new VideoEncoder({
+                        output: (chunk, metadata) => {
+                            chunks.push(chunk);
+                            decoderConfig ??= metadata?.decoderConfig;
+                        },
+                        error: error => (entry.encodeError = text(error)),
+                    });
+                    encoder.configure({ codec, width, height, bitrate: 8_000_000, framerate: 10 });
+                    encoder.encode(frame, { keyFrame: true });
+                    await encoder.flush();
+                    encoder.close();
                     frame.close();
-                    return result;
-                });
-            } catch (error) {
-                out.error = text(error);
+                    entry.reported = decoderConfig?.colorSpace;
+                    const pictures = [];
+                    const decoder = new VideoDecoder({
+                        output: picture => pictures.push(picture),
+                        error: error => (entry.decodeError = text(error)),
+                    });
+                    decoder.configure({
+                        codec,
+                        codedWidth: width,
+                        codedHeight: height,
+                        hardwareAcceleration: 'prefer-software',
+                    });
+                    for (const chunk of chunks) decoder.decode(chunk);
+                    await decoder.flush();
+                    decoder.close();
+                    const [picture] = pictures;
+                    if (!picture) continue;
+                    entry.decoded = {
+                        format: picture.format,
+                        colour: picture.colorSpace?.toJSON?.(),
+                    };
+                    entry.drawnDecoded = centres(
+                        rgbaOf(c => c.drawImage(picture, 0, 0), width, height),
+                    );
+                    const data = new Uint8Array(picture.allocationSize());
+                    const planes = await picture.copyTo(data);
+                    const [luma, chroma] = planes;
+                    entry.yuv = colours.map((_, index) => {
+                        const x = index * side + side / 2;
+                        const y = side / 2;
+                        const yValue = data[luma.offset + y * luma.stride + x];
+                        if (picture.format === 'NV12')
+                            return [
+                                yValue,
+                                data[chroma.offset + (y / 2) * chroma.stride + (x / 2) * 2],
+                                data[chroma.offset + (y / 2) * chroma.stride + (x / 2) * 2 + 1],
+                            ];
+                        const v = planes[2];
+                        return [
+                            yValue,
+                            data[chroma.offset + (y / 2) * chroma.stride + x / 2],
+                            data[v.offset + (y / 2) * v.stride + x / 2],
+                        ];
+                    });
+                    for (const each of pictures) each.close();
+                }
             }
-            report(t, out);
-        });
+        } catch (error) {
+            out.error = text(error);
+        }
+        report(t, out);
+    });
 });
