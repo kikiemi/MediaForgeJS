@@ -88,7 +88,16 @@ async function* hostDecodedPlanes(
     const lifetime = new CodecLifetime(signal);
     let decoder: HostAudioDecoder | undefined;
     try {
-        decoder = new HostAudioDecoder(config, lifetime, warn);
+        const decodable =
+            config.codec === 'flac'
+                ? await awaitWithAbort(
+                      import('../../codecs/webcodecs/flac-description').then(module =>
+                          module.hostFlacDecoderConfig(config),
+                      ),
+                      signal,
+                  )
+                : config;
+        decoder = new HostAudioDecoder(decodable, lifetime, warn);
         for (let index = first, count = sampleCount(track); index < count; index++) {
             const gap = gaps.get(index);
             if (gap) {
