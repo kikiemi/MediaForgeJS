@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import { MediaForge, open } from 'mediaforgejs';
-import { encodeBmp, encodeFlac, encodeIco } from 'mediaforgejs/codecs';
+import { encodeFlac } from 'mediaforgejs/codecs';
 import { WebMMuxer } from 'mediaforgejs/formats';
 import { MemorySink } from 'mediaforgejs/io';
 import { player } from 'mediaforgejs-player';
@@ -132,7 +132,7 @@ async function videoDecode(config, packets, keep) {
     return { ...out, outputs, error: text(failure), kept };
 }
 
-/** 1.5 s of the pattern as VP8 in WebM, as the transform tests make it, and the encoder's colour. */
+/** 1.5 s of the pattern as VP8 in WebM, as the transform tests make it; the encoder's colour. */
 async function patternVp8(colour) {
     const chunks = [];
     let reported;
@@ -237,215 +237,62 @@ async function shownPicture(blob) {
 }
 
 describe('host probe', { skip: !inBrowser && 'runs in a browser (npm run test:browser)' }, () => {
-    test('probe: FLAC host decode', { timeout: 100_000 }, async t => {
+    test('probe: FLAC descriptions', { timeout: 100_000 }, async t => {
         const out = {};
         try {
             const { flacStreamHeader } = await internal('core/codec-config/audio/flac-frame');
-            const { hostAudioDecoderConfig } = await internal('codecs/webcodecs/audio');
             const { deinterleave, tone } = await import('../helpers/pcm.mjs');
-            const sources = {
-                library: async () =>
-                    new Blob([
-                        await encodeFlac(deinterleave(tone(48000, 2, 9600), 2), {
-                            sampleRate: 48000,
-                        }),
-                    ]),
-                fixture: async () =>
-                    new Blob([
-                        await (
-                            await fetch('/test/fixtures/flac/lpc-order32-24bit.flac')
-                        ).arrayBuffer(),
-                    ]),
-            };
-            for (const [name, make] of Object.entries(sources)) {
-                const entry = (out[name] = {});
-                try {
-                    const blob = await make();
-                    const { track, packets } = await demux(blob);
-                    entry.track = {
-                        codec: track.codec,
-                        rate: track.sampleRate,
-                        channels: track.channelCount,
-                        config:
-                            track.codecConfig &&
-                            `${track.codecConfig.length}:${hex(track.codecConfig, 48)}`,
-                    };
-                    entry.packets = [
-                        packets.length,
-                        ...packets.slice(0, 3).map(p => `${p.data.length}:${hex(p.data, 12)}`),
-                    ];
-                    const header = flacStreamHeader(track.codecConfig);
-                    const library = hostAudioDecoderConfig(track);
-                    const notLast = header.slice();
-                    notLast[4] = 0;
-                    const shape = {
-                        codec: 'flac',
-                        sampleRate: track.sampleRate,
-                        numberOfChannels: track.channelCount,
-                    };
-                    const fileHead = new Uint8Array(await blob.arrayBuffer()).slice(0, 8192);
-                    const variants = {
-                        library,
-                        notLast: { ...shape, description: notLast },
-                        bare: { ...shape, description: header.subarray(8) },
-                        none: shape,
-                    };
-                    for (const [variant, config] of Object.entries(variants)) {
-                        entry[`${variant}/1`] = await audioDecode(config, packets.slice(0, 1));
-                        entry[`${variant}/all`] = await audioDecode(config, packets);
-                    }
-                    entry.head = hex(fileHead, 64);
-                } catch (error) {
-                    entry.error = text(error);
-                }
-            }
-        } catch (error) {
-            out.error = text(error);
-        }
-        report(t, out);
-    });
-
-    test('probe: VP9 and AV1 host decode', { timeout: 100_000 }, async t => {
-        const out = {};
-        try {
-            const { supportStream } = await import('../helpers/support-streams.mjs');
-            const { hostVideoDecoderConfig } = await internal('codecs/webcodecs/video');
-            for (const name of ['vp9.webm', 'av1.mp4', 'vp8.webm']) {
-                const entry = (out[name] = {});
-                try {
-                    const { track, packets } = await demux(new Blob([await supportStream(name)]));
-                    entry.track = {
-                        codec: track.codec,
-                        size: [track.width, track.height],
-                        config:
-                            track.codecConfig &&
-                            `${track.codecConfig.length}:${hex(track.codecConfig)}`,
-                        colour: track.colour,
-                        packets: packets.length,
-                    };
-                    const library = hostVideoDecoderConfig(track);
-                    entry.library = await videoDecode(library, packets);
-                    for (const acceleration of ['prefer-software', 'prefer-hardware'])
-                        entry[acceleration] = await videoDecode(
-                            { ...library, hardwareAcceleration: acceleration },
-                            packets,
-                        );
-                    const bare = {
-                        codec: library.codec,
-                        codedWidth: track.width,
-                        codedHeight: track.height,
-                    };
-                    entry.bare = await videoDecode(bare, packets);
-                    entry.bareSoftware = await videoDecode(
-                        { ...bare, hardwareAcceleration: 'prefer-software' },
-                        packets,
-                    );
-                } catch (error) {
-                    entry.error = text(error);
-                }
-            }
-            // The host's own VP9 and AV1, decoded back.
-            for (const codec of ['vp09.00.10.08', 'av01.0.04M.08']) {
-                const entry = (out[`own ${codec}`] = {});
-                try {
-                    const config = {
-                        codec,
-                        width: 64,
-                        height: 48,
-                        bitrate: 500_000,
-                        framerate: 30,
-                    };
-                    entry.encodeSupported = (
-                        await VideoEncoder.isConfigSupported(config)
-                    ).supported;
-                    if (!entry.encodeSupported) continue;
-                    const packets = [];
-                    let decoderConfig;
-                    const encoder = new VideoEncoder({
-                        output: (chunk, metadata) => {
-                            decoderConfig ??= metadata?.decoderConfig;
-                            const data = new Uint8Array(chunk.byteLength);
-                            chunk.copyTo(data);
-                            packets.push({
-                                data,
-                                timestamp: chunk.timestamp / 1e6,
-                                key: chunk.type === 'key',
-                            });
-                        },
-                        error: error => (entry.encodeError = text(error)),
-                    });
-                    encoder.configure(config);
-                    const canvas = new OffscreenCanvas(64, 48);
-                    const context = canvas.getContext('2d');
-                    for (let index = 0; index < 5; index++) {
-                        context.fillStyle = `rgb(${index * 40}, 80, 160)`;
-                        context.fillRect(0, 0, 64, 48);
-                        const frame = new VideoFrame(canvas, { timestamp: index * 33333 });
-                        encoder.encode(frame, { keyFrame: index === 0 });
-                        frame.close();
-                    }
-                    await encoder.flush();
-                    encoder.close();
-                    entry.decoderConfig = decoderConfig && summary(decoderConfig);
-                    entry.decoded = await videoDecode(
-                        decoderConfig ?? { codec, codedWidth: 64, codedHeight: 48 },
-                        packets,
-                    );
-                    entry.decodedSoftware = await videoDecode(
-                        {
-                            ...(decoderConfig ?? { codec, codedWidth: 64, codedHeight: 48 }),
-                            hardwareAcceleration: 'prefer-software',
-                        },
-                        packets,
-                    );
-                } catch (error) {
-                    entry.error = text(error);
-                }
-            }
-        } catch (error) {
-            out.error = text(error);
-        }
-        report(t, out);
-    });
-
-    test('probe: HDR colour of decoded frames', { timeout: 100_000 }, async t => {
-        const out = {};
-        try {
-            const { patternClip } = await import('../helpers/pattern-clip.mjs');
-            const { hostVideoDecoderConfig } = await internal('codecs/webcodecs/video');
-            const pq = { primaries: 9, transfer: 16, matrix: 9, fullRange: false };
-            const blob = await patternClip({ colour: pq, frames: 5 });
+            const blob = new Blob([
+                await encodeFlac(deinterleave(tone(48000, 2, 9600), 2), { sampleRate: 48000 }),
+            ]);
             const { track, packets } = await demux(blob);
-            out.track = track.colour;
-            const config = hostVideoDecoderConfig(track);
-            const colorSpace = {
-                primaries: 'bt2020',
-                transfer: 'pq',
-                matrix: 'bt2020-ncl',
-                fullRange: false,
+            const header = flacStreamHeader(track.codecConfig);
+            const info = header.subarray(4);
+            const join = (...parts) => {
+                const bytes = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+                let at = 0;
+                for (const part of parts) {
+                    bytes.set(part, at);
+                    at += part.length;
+                }
+                return bytes;
             };
-            out.withColour = await videoDecode({ ...config, colorSpace }, packets);
-            out.without = await videoDecode(config, packets);
-            const warnings = [];
-            const forge = new MediaForge({ onWarning: warning => warnings.push(warning.code) });
-            for await (const frame of forge.frames(blob, { format: 'videoframe', times: [0] })) {
-                out.libraryFrame = frame.colorSpace?.toJSON?.();
-                frame.close();
-            }
-            const thumbnail = await forge.thumbnail(blob, { time: 0, to: 'png' });
-            out.thumbnailWarnings = thumbnail.warnings?.map(warning => warning.code);
-            out.warnings = warnings;
+            const ascii = value => Uint8Array.from(value, char => char.charCodeAt(0));
+            const size = length => Uint8Array.of(0, 0, length >> 8, length & 255);
+            const shape = { codec: 'flac', sampleRate: 48000, numberOfChannels: 2 };
+            const box = join(size(12 + info.length), ascii('dfLa'), new Uint8Array(4), info);
+            const variants = {
+                dfLaPayload: join(new Uint8Array(4), info),
+                dfLaBox: box,
+                fLaCdfLaBox: join(ascii('fLaC'), box),
+                streamInfoBlock: info,
+            };
+            for (const [name, description] of Object.entries(variants))
+                out[name] = await audioDecode({ ...shape, description }, packets.slice(0, 1));
+            out.mse =
+                typeof MediaSource === 'function' &&
+                MediaSource.isTypeSupported('audio/mp4; codecs="flac"');
+            out.element = document.createElement('audio').canPlayType('audio/flac');
+            const media = document.createElement('audio');
+            media.muted = true;
+            media.src = URL.createObjectURL(new Blob([blob], { type: 'audio/flac' }));
+            out.elementPlays = await new Promise(resolve => {
+                media.addEventListener('loadedmetadata', () =>
+                    resolve(`duration ${media.duration}`),
+                );
+                media.addEventListener('error', () => resolve(`error ${media.error?.code}`));
+                setTimeout(() => resolve('timeout'), 5000);
+            });
         } catch (error) {
             out.error = text(error);
         }
         report(t, out);
     });
 
-    test('probe: drawing parts of decoded frames', { timeout: 100_000 }, async t => {
+    test('probe: the drawing of a cover conversion', { timeout: 100_000 }, async t => {
         const out = {};
         try {
-            const { blob, reported } = await patternVp8();
-            out.encoderColour = reported;
+            const { blob } = await patternVp8();
             const { track, packets } = await demux(blob);
             const decoded = await videoDecode(
                 { codec: track.codec, codedWidth: track.width, codedHeight: track.height },
@@ -453,160 +300,126 @@ describe('host probe', { skip: !inBrowser && 'runs in a browser (npm run test:br
                 true,
             );
             const frame = decoded.kept;
-            delete decoded.kept;
-            out.frame = decoded;
             const { width, height } = { width: frame.displayWidth, height: frame.displayHeight };
-            const whole = rgbaOf(context => context.drawImage(frame, 0, 0), width, height);
-            out.wholeOracle = oracle(whole, width, height, undefined);
             const reference = new OffscreenCanvas(width, height);
             reference.getContext('2d').drawImage(frame, 0, 0);
-            for (const [name, s, d] of [
-                ['cover', { x: 40, y: 0, width: 240, height: 240 }, [200, 200]],
-                ['odd', { x: 31, y: 17, width: 160, height: 128 }, [160, 128]],
-                ['crop', { x: 32, y: 16, width: 160, height: 128 }, [160, 128]],
-            ]) {
-                const [dw, dh] = d;
-                const entry = (out[name] = {});
-                const viaCanvas = rgbaOf(
-                    context =>
-                        context.drawImage(reference, s.x, s.y, s.width, s.height, 0, 0, dw, dh),
-                    dw,
-                    dh,
-                );
-                const variants = {
-                    sourceRect: context =>
-                        context.drawImage(frame, s.x, s.y, s.width, s.height, 0, 0, dw, dh),
-                    shiftedClip: context => {
-                        const scaleX = dw / s.width;
-                        const scaleY = dh / s.height;
-                        context.beginPath();
-                        context.rect(0, 0, dw, dh);
-                        context.clip();
-                        context.drawImage(
-                            frame,
-                            -s.x * scaleX,
-                            -s.y * scaleY,
-                            width * scaleX,
-                            height * scaleY,
-                        );
-                    },
-                    shifted: context => {
-                        const scaleX = dw / s.width;
-                        const scaleY = dh / s.height;
-                        context.drawImage(
-                            frame,
-                            -s.x * scaleX,
-                            -s.y * scaleY,
-                            width * scaleX,
-                            height * scaleY,
-                        );
-                    },
-                };
-                entry.viaCanvasOracle = oracle(viaCanvas, dw, dh, s);
-                for (const [variant, draw] of Object.entries(variants)) {
-                    const rgba = rgbaOf(draw, dw, dh);
-                    entry[variant] = [meanDifference(rgba, viaCanvas), oracle(rgba, dw, dh, s)];
+            const s = { x: 40, y: 0, width: 240, height: 240 };
+            const [dw, dh] = [200, 200];
+            const viaCanvas = rgbaOf(
+                context => context.drawImage(reference, s.x, s.y, s.width, s.height, 0, 0, dw, dh),
+                dw,
+                dh,
+            );
+            const scale = dw / s.width;
+            const library = (clip, centred, options) => {
+                const canvas = new OffscreenCanvas(dw, dh);
+                const context = canvas.getContext('2d', options);
+                context.save();
+                if (centred) context.translate(dw / 2, dh / 2);
+                const x0 = centred ? -dw / 2 : 0;
+                const y0 = centred ? -dh / 2 : 0;
+                if (clip) {
+                    context.beginPath();
+                    context.rect(x0, y0, dw, dh);
+                    context.clip();
                 }
-                const bitmap = await createImageBitmap(frame);
-                const viaBitmap = rgbaOf(
-                    context => context.drawImage(bitmap, s.x, s.y, s.width, s.height, 0, 0, dw, dh),
-                    dw,
-                    dh,
+                context.drawImage(
+                    frame,
+                    x0 - s.x * scale,
+                    y0 - s.y * scale,
+                    width * scale,
+                    height * scale,
                 );
-                bitmap.close();
-                entry.bitmap = [meanDifference(viaBitmap, viaCanvas), oracle(viaBitmap, dw, dh, s)];
+                context.restore();
+                return context.getImageData(0, 0, dw, dh).data;
+            };
+            for (const [name, clip, centred, options] of [
+                ['clipCentred', true, true, { alpha: false }],
+                ['clipCentredRead', true, true, { alpha: false, willReadFrequently: true }],
+                ['centred', false, true, { alpha: false }],
+                ['clip', true, false, { alpha: false }],
+            ]) {
+                const rgba = library(clip, centred, options);
+                out[name] = [meanDifference(rgba, viaCanvas), oracle(rgba, dw, dh, s)];
+            }
+            const { VideoFrameTransformer } = await internal('stages/frame-transform');
+            const geometry = {
+                width: dw,
+                height: dh,
+                target: { x: 0, y: 0, width: dw, height: dh },
+                region: s,
+                sourceWidth: width,
+                sourceHeight: height,
+                rotation: 0,
+                flipX: false,
+                flipY: false,
+            };
+            for (const readable of [false, true]) {
+                const transformer = new VideoFrameTransformer(geometry, readable);
+                const output = transformer.apply(frame, frame.timestamp, undefined);
+                const rgba = rgbaOf(context => context.drawImage(output, 0, 0), dw, dh);
+                out[`transformer${readable ? 'Read' : ''}`] = {
+                    size: [output.displayWidth, output.displayHeight],
+                    difference: [meanDifference(rgba, viaCanvas), oracle(rgba, dw, dh, s)],
+                };
+                if (output !== frame) output.close();
             }
             frame.close();
-            // The library's conversions, as the transform tests check them.
-            for (const [name, settings, crop] of [
-                ['none', {}, undefined],
-                ['contain', { width: 200, height: 200, fit: 'contain' }, undefined],
-                [
-                    'cover',
-                    { width: 200, height: 200, fit: 'cover' },
-                    { x: 40, y: 0, width: 240, height: 240 },
-                ],
-                [
-                    'odd',
-                    { crop: { x: 31, y: 17, width: 161, height: 129 } },
-                    { x: 31, y: 17, width: 160, height: 128 },
-                ],
-            ]) {
-                try {
-                    const { blob: output } = await new MediaForge().convert(blob, {
-                        to: 'webm',
-                        video: { codec: 'vp8', bitrate: 2_000_000, ...settings },
+
+            const prototype = OffscreenCanvasRenderingContext2D.prototype;
+            const drawImage = prototype.drawImage;
+            const encode = VideoEncoder.prototype.encode;
+            const draws = [];
+            let first;
+            prototype.drawImage = function (source, ...args) {
+                if (draws.length < 4 && source instanceof VideoFrame) {
+                    const m = this.getTransform();
+                    const visible = source.visibleRect;
+                    draws.push({
+                        args: args.map(value => +value.toFixed(2)),
+                        transform: [m.a, m.b, m.c, m.d, m.e, m.f].map(value => +value.toFixed(2)),
+                        canvas: [this.canvas.width, this.canvas.height],
+                        display: [source.displayWidth, source.displayHeight],
+                        coded: [source.codedWidth, source.codedHeight],
+                        visible: visible && [visible.x, visible.y, visible.width, visible.height],
+                        format: source.format,
                     });
-                    const picture = await shownPicture(output);
-                    const sized = settings.width !== undefined;
-                    const expected = transformedPattern({
-                        crop: settings.crop ? crop : undefined,
-                        width: picture.width,
-                        height: picture.height,
-                        fit: sized ? settings.fit : 'fill',
-                    });
-                    out[`convert ${name}`] = {
-                        size: [picture.width, picture.height],
-                        oracle: +maskedDifference(
-                            picture.rgba,
-                            expected.rgba,
-                            expected.mask,
-                        ).toFixed(2),
-                        colour: picture.colour,
-                    };
-                } catch (error) {
-                    out[`convert ${name}`] = text(error);
                 }
+                return drawImage.call(this, source, ...args);
+            };
+            VideoEncoder.prototype.encode = function (input, options) {
+                if (!first && input.displayWidth === dw)
+                    first = rgbaOf(context => drawImage.call(context, input, 0, 0), dw, dh);
+                return encode.call(this, input, options);
+            };
+            try {
+                await new MediaForge().convert(blob, {
+                    to: 'webm',
+                    video: {
+                        codec: 'vp8',
+                        bitrate: 2_000_000,
+                        width: dw,
+                        height: dh,
+                        fit: 'cover',
+                    },
+                });
+            } finally {
+                prototype.drawImage = drawImage;
+                VideoEncoder.prototype.encode = encode;
             }
+            out.draws = draws;
+            out.firstEncoded = first && [
+                meanDifference(first, viaCanvas),
+                oracle(first, dw, dh, s),
+            ];
         } catch (error) {
             out.error = text(error);
         }
         report(t, out);
     });
 
-    test('probe: ICO and BMP through createImageBitmap', { timeout: 100_000 }, async t => {
-        const out = {};
-        const fill = (width, height) => ({
-            data: new Uint8Array(width * height * 4).fill(200),
-            width,
-            height,
-        });
-        for (const [width, height] of [
-            [1, 1],
-            [2, 2],
-            [16, 12],
-            [16, 16],
-            [32, 32],
-        ]) {
-            const bytes = await encodeIco(fill(width, height));
-            for (const type of ['image/x-icon', 'image/vnd.microsoft.icon', ''])
-                try {
-                    const bitmap = await createImageBitmap(new Blob([bytes], { type }));
-                    out[`ico ${width}x${height} ${type}`] = [bitmap.width, bitmap.height];
-                    bitmap.close();
-                } catch (error) {
-                    out[`ico ${width}x${height} ${type}`] = text(error);
-                }
-        }
-        try {
-            const bitmap = await createImageBitmap(
-                new Blob([await encodeBmp(fill(1, 1))], { type: 'image/bmp' }),
-            );
-            out.bmp = [bitmap.width, bitmap.height];
-        } catch (error) {
-            out.bmp = text(error);
-        }
-        out.icoHead = hex(await encodeIco(fill(1, 1)), 40);
-        try {
-            out.imageDecoder = await globalThis.ImageDecoder?.isTypeSupported('image/x-icon');
-        } catch (error) {
-            out.imageDecoder = text(error);
-        }
-        report(t, out);
-    });
-
     test('probe: playback of short packages', { timeout: 400_000 }, async t => {
-        const out = {};
+        const out = { stalls: 0, attempts: 0 };
         const BASE = 'https://media.test/probe/';
         const served =
             files =>
@@ -629,14 +442,11 @@ describe('host probe', { skip: !inBrowser && 'runs in a browser (npm run test:br
         try {
             const { tone, toInt16, waveFile } = await import('../helpers/pcm.mjs');
             const forge = new MediaForge({ plugins: { add: [player] } });
-            for (const [to, seconds, attempts] of [
-                ['hls', 1, 3],
-                ['dash', 1, 2],
-                ['hls', 2, 1],
+            for (const [to, attempts] of [
+                ['hls', 8],
+                ['dash', 4],
             ]) {
-                const wave = new Blob([
-                    waveFile(toInt16(tone(48000, 2, seconds * 48000)), 48000, 2),
-                ]);
+                const wave = new Blob([waveFile(toInt16(tone(48000, 2, 48000)), 48000, 2)]);
                 const { blob } = await forge.convert(wave, { to: 'mp4', audio: { codec: 'aac' } });
                 const pack = await forge.packageMedia(blob, { to, targetDuration: 0.5 });
                 for (let attempt = 0; attempt < attempts; attempt++) {
@@ -648,46 +458,11 @@ describe('host probe', { skip: !inBrowser && 'runs in a browser (npm run test:br
                     const started = performance.now();
                     const events = [];
                     const at = () => Math.round(performance.now() - started);
-                    for (const type of [
-                        'loadedmetadata',
-                        'canplay',
-                        'playing',
-                        'waiting',
-                        'stalled',
-                        'pause',
-                        'ended',
-                        'error',
-                        'durationchange',
-                        'seeking',
-                        'seeked',
-                    ])
+                    for (const type of ['playing', 'seeking', 'seeked', 'ended', 'error'])
                         media.addEventListener(type, () =>
-                            events.push(
-                                `${type}@${at()} t${media.currentTime.toFixed(3)} d${media.duration.toFixed(3)}`,
-                            ),
+                            events.push(`${type}@${at()} t${media.currentTime.toFixed(3)}`),
                         );
-                    let lastUpdate;
-                    media.addEventListener(
-                        'timeupdate',
-                        () => (lastUpdate = `${at()} t${media.currentTime.toFixed(3)}`),
-                    );
-                    const state = () => ({
-                        time: media.currentTime,
-                        duration: media.duration,
-                        buffered: [...Array(media.buffered.length).keys()].map(i => [
-                            +media.buffered.start(i).toFixed(3),
-                            +media.buffered.end(i).toFixed(3),
-                        ]),
-                        readyState: media.readyState,
-                        networkState: media.networkState,
-                        paused: media.paused,
-                        ended: media.ended,
-                        error: media.error?.message,
-                        src: media.getAttribute('src'),
-                        lastUpdate,
-                    });
                     let finished = 'pending';
-                    let snapshot;
                     const ended = new Promise(resolve =>
                         media.addEventListener('ended', resolve, { once: true }),
                     );
@@ -698,11 +473,20 @@ describe('host probe', { skip: !inBrowser && 'runs in a browser (npm run test:br
                         () => (finished = `resolved@${at()}`),
                         error => (finished = `rejected@${at()} ${text(error)}`),
                     );
-                    const timeout = new Promise(resolve => setTimeout(resolve, 20_000));
-                    await Promise.race([Promise.all([done, ended]), timeout]);
-                    snapshot = state();
-                    if (finished === 'pending') playback.stop?.();
-                    out[`${to} ${seconds}s #${attempt}`] = { finished, events, state: snapshot };
+                    await Promise.race([
+                        Promise.all([done, ended]),
+                        new Promise(resolve => setTimeout(resolve, 15_000)),
+                    ]);
+                    out.attempts++;
+                    if (finished === 'pending') {
+                        out.stalls++;
+                        out[`${to} #${attempt}`] = {
+                            events,
+                            time: media.currentTime,
+                            readyState: media.readyState,
+                        };
+                        playback.stop?.();
+                    } else out[`${to} #${attempt}`] = events.join(' ');
                     media.remove();
                 }
             }
