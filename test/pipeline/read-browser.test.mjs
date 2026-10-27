@@ -129,15 +129,17 @@ async function repeatedFragments(file, bytes) {
 }
 
 /**
- * The peak JS heap while `work` runs, or 0 where the browser does not report it. A sample past
- * MAX_HEAP_BYTES counts what survives a collection where the page may collect (the runner exposes
- * gc() in Chromium): garbage the browser has not collected yet is not held by the work.
+ * The peak JS heap, ArrayBuffers included, while `work` runs, or 0 where the browser does not
+ * report it. A sample past MAX_HEAP_BYTES counts what survives a collection where the page may
+ * collect (the runner exposes gc() in Chromium): garbage the browser has not collected yet is not
+ * held by the work. The collection is the last-resort one, which also frees the dead ArrayBuffers
+ * that a plain gc() leaves to a sweeper still counting them when it returns.
  */
 async function peakHeapOf(work) {
     const used = () => {
         const size = performance.memory?.usedJSHeapSize ?? 0;
         if (size < MAX_HEAP_BYTES || typeof globalThis.gc !== 'function') return size;
-        globalThis.gc();
+        globalThis.gc({ type: 'major', execution: 'sync', flavor: 'last-resort' });
         return performance.memory.usedJSHeapSize;
     };
     let peak = used();
