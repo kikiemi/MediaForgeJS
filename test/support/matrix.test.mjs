@@ -24,7 +24,7 @@ describe('support matrix', () => {
                         'or a case for it',
                 ),
             );
-        else test(cellName(cell), () => found.run());
+        else test(cellName(cell), t => found.run(t));
     }
 
     test('every input and case of the registry serves a declared cell', () => {

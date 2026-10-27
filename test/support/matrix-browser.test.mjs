@@ -26,7 +26,7 @@ describe(
                             'case for it',
                     ),
                 );
-            else test(cellName(cell), () => found.run());
+            else test(cellName(cell), t => found.run(t));
         }
     },
 );
