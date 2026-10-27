@@ -685,13 +685,19 @@ async function probeVisibleRect(): Promise<boolean> {
 
 /**
  * `frame` as the host's encoders take it: one showing part of its coded picture becomes a copy of
- * that part where they encode the whole picture (see encodesVisibleRect). The caller closes a
- * copy.
+ * that part where they encode the whole picture (see encodesVisibleRect), and an RGB one becomes
+ * BT.709 I420 where they convert RGB otherwise than they report (see ./rgb-frames). The caller
+ * closes a copy.
  */
 export async function encodableFrame(
     frame: VideoFrame,
     lifetime: CodecLifetime,
 ): Promise<VideoFrame> {
+    if (/^(?:RGB|BGR)/.test(frame.format ?? '')) {
+        const { reportedYuvFrame } = await lifetime.waitFor(import('./rgb-frames'));
+        const yuv = await reportedYuvFrame(frame, lifetime);
+        if (yuv) return yuv;
+    }
     const rect = frame.visibleRect;
     if (
         !rect ||

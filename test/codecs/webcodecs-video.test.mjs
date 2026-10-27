@@ -974,6 +974,129 @@ describe('webcodecs', () => {
             }
         });
 
+        /**
+         * Frames of RGBA and I420 buffers, and VP8 codecs whose encoder takes red to the luma of
+         * `coefficient` (the red luma of a matrix) and reports BT.709 of limited range.
+         */
+        const rgbCodecs = coefficient => {
+            class Frame {
+                constructor(data, init) {
+                    Object.assign(this, init, { data, closed: false });
+                    this.visibleRect = {
+                        x: 0,
+                        y: 0,
+                        width: init.codedWidth,
+                        height: init.codedHeight,
+                    };
+                    this.displayWidth = init.displayWidth ?? init.codedWidth;
+                    this.displayHeight = init.displayHeight ?? init.codedHeight;
+                    this.colorSpace = init.colorSpace ?? { matrix: 'rgb' };
+                }
+                allocationSize() {
+                    return this.data.length;
+                }
+                async copyTo(target) {
+                    target.set(this.data);
+                    const { codedWidth: width, codedHeight: height } = this;
+                    return this.format === 'I420'
+                        ? [
+                              { offset: 0, stride: width },
+                              { offset: width * height, stride: width / 2 },
+                              { offset: width * height * 1.25, stride: width / 2 },
+                          ]
+                        : [{ offset: 0, stride: width * 4 }];
+                }
+                close() {
+                    this.closed = true;
+                }
+            }
+            class Encoder {
+                state = 'unconfigured';
+                constructor(init) {
+                    this.init = init;
+                }
+                configure(config) {
+                    this.config = config;
+                    this.state = 'configured';
+                }
+                encode(frame) {
+                    const luma = Math.round(16 + 219 * coefficient * (frame.data[0] / 255));
+                    const colorSpace = { matrix: 'bt709', fullRange: false };
+                    this.init.output({ luma }, { decoderConfig: { codec: 'vp8', colorSpace } });
+                }
+                async flush() {}
+                close() {
+                    this.state = 'closed';
+                }
+            }
+            class Decoder {
+                state = 'unconfigured';
+                constructor(init) {
+                    this.init = init;
+                }
+                configure() {
+                    this.state = 'configured';
+                }
+                decode(chunk) {
+                    const [width, height] = [32, 16];
+                    const data = new Uint8Array(width * height * 1.5).fill(chunk.luma, 0, 512);
+                    this.init.output(
+                        new Frame(data, { format: 'I420', codedWidth: width, codedHeight: height }),
+                    );
+                }
+                async flush() {}
+                close() {
+                    this.state = 'closed';
+                }
+            }
+            const restore = installGlobals({
+                VideoFrame: Frame,
+                VideoEncoder: Encoder,
+                VideoDecoder: Decoder,
+            });
+            return { Frame, restore };
+        };
+
+        test('RGB goes as BT.709 I420 where encoders convert it unlike they report', async () => {
+            // Safari's encoders turn RGB into Y'CbCr with BT.601 and report BT.709.
+            for (const [coefficient, converted] of [
+                [0.299, true],
+                [0.2126, false],
+            ]) {
+                const { Frame, restore } = rgbCodecs(coefficient);
+                try {
+                    const red = new Uint8Array(4 * 4 * 4);
+                    for (let at = 0; at < red.length; at += 4) red.set([255, 0, 0, 255], at);
+                    const init = {
+                        format: 'RGBA',
+                        codedWidth: 4,
+                        codedHeight: 4,
+                        timestamp: 40000,
+                    };
+                    const frame = new Frame(red, init);
+                    const encodable = await encodableFrame(frame, new CodecLifetime());
+                    assert.equal(encodable !== frame, converted, `red luma ${coefficient}`);
+                    if (!converted) continue;
+                    // BT.709 red of limited range: Y 63, Cb 102, Cr 240.
+                    assert.deepEqual(
+                        [
+                            encodable.format,
+                            encodable.data[0],
+                            encodable.data[16],
+                            encodable.data[20],
+                        ],
+                        ['I420', 63, 102, 240],
+                    );
+                    assert.deepEqual(
+                        [encodable.timestamp, encodable.colorSpace.matrix, frame.closed],
+                        [40000, 'bt709', false],
+                    );
+                } finally {
+                    restore();
+                }
+            }
+        });
+
         test('a frame showing its whole picture goes as it is, unprobed', async () => {
             const { Frame, stats, restore } = i420Codecs({ codedPicture: true });
             try {
