@@ -348,19 +348,33 @@ export class VideoFrameTransformer {
         const drawHeight = turned ? target.width : target.height;
         const source = this.sourceRect(frame);
 
+        context.save();
         context.translate(target.x + target.width / 2, target.y + target.height / 2);
         context.scale(flipX ? -1 : 1, flipY ? -1 : 1);
         context.rotate((rotation * Math.PI) / 180);
-        context.drawImage(
-            frame,
-            source.x,
-            source.y,
-            source.width,
-            source.height,
-            -drawWidth / 2,
-            -drawHeight / 2,
-            drawWidth,
-            drawHeight,
-        );
+        const whole =
+            source.x === 0 &&
+            source.y === 0 &&
+            source.width === frame.displayWidth &&
+            source.height === frame.displayHeight;
+        if (whole) context.drawImage(frame, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        else {
+            // WebKit ignores the source rectangle of a VideoFrame (WebKit bug 260459): the whole
+            // picture is drawn, scaled and moved so that the rectangle lands on the target, and
+            // clipped to it.
+            const scaleX = drawWidth / source.width;
+            const scaleY = drawHeight / source.height;
+            context.beginPath();
+            context.rect(-drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+            context.clip();
+            context.drawImage(
+                frame,
+                -drawWidth / 2 - source.x * scaleX,
+                -drawHeight / 2 - source.y * scaleY,
+                frame.displayWidth * scaleX,
+                frame.displayHeight * scaleY,
+            );
+        }
+        context.restore();
     }
 }

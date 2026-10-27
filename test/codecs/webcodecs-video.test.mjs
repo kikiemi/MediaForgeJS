@@ -418,6 +418,48 @@ describe('webcodecs', () => {
             }
         });
 
+        test('a failing keyframe costs no earlier picture where pictures come late', async () => {
+            // Each picture comes out when the next packet is decoded, as from Firefox's VP8
+            // decoder, so the failure of the keyframe at 3 takes the picture of 2 with it: the
+            // group of 2 is decoded again and flushed out, then decoding resumes at 6.
+            const { Decoder, stats } = fakeVideoDecoder((decoder, chunk) => {
+                if (chunk.data[0] === 3) return new DOMException('corrupt', 'EncodingError');
+                const previous = decoder.previous;
+                decoder.previous = chunk;
+                return previous && echo(decoder, previous);
+            });
+            class Late extends Decoder {
+                async flush() {
+                    await super.flush();
+                    const previous = this.previous;
+                    this.previous = undefined;
+                    if (previous && this.state !== 'closed') this.init.output(echo(this, previous));
+                }
+            }
+            const { decoder, pictures, warnings, restore } = decoderOn(Late);
+            try {
+                for (let index = 0; index < 8; index++) {
+                    await decoder.decode(packet(index, index % 3 === 0));
+                    await yieldTask();
+                }
+                await decoder.flush(true);
+                assert.deepEqual(
+                    pictures.map(([, timing]) => Math.round(timing.timestamp * 3)),
+                    [0, 1, 2, 6, 7],
+                );
+                assert.deepEqual(warnings, [
+                    [
+                        'VIDEO_DECODE_RECOVERED',
+                        'Dropped 3 video packet(s) from 1.000 s to the keyframe at 2.000 s',
+                    ],
+                ]);
+                assert.equal(stats.decoders, 3);
+            } finally {
+                decoder.close();
+                restore();
+            }
+        });
+
         test('strict decoding fails on the first decoder error', async () => {
             const { Decoder } = fakeVideoDecoder(
                 () => new DOMException('corrupt', 'EncodingError'),

@@ -129,7 +129,9 @@ export function assertAudioEncodeRequest(codec: string): void {
 function audioEncodeRefusal(codec: string): MediaForgeError | undefined {
     const fam = codecFamily(codec);
     if (fam !== 'mp4a' && codec !== 'aac') {
-        if (['opus', 'mp3', 'mp2', 'flac', 'pcm', 'ulaw', 'alaw'].includes(codec)) return undefined;
+        // Vorbis has no library encoder; it is encoded where the host's AudioEncoder takes it.
+        if (['opus', 'vorbis', 'mp3', 'mp2', 'flac', 'pcm', 'ulaw', 'alaw'].includes(codec))
+            return undefined;
         return new MediaForgeError(`${codec} audio can be copied but not encoded here`, 'ENCODE');
     }
 

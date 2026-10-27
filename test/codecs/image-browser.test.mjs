@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { convert } from 'mediaforgejs';
+import { capabilities, convert } from 'mediaforgejs';
 import {
     AnimatedWebpEncoder,
     decodeAnimatedWebp,
@@ -26,6 +26,13 @@ function halves(alpha = 255) {
     }
     return { data, width: 48, height: 32 };
 }
+
+/**
+ * Whether the browser's canvas encodes `format`, which capabilities() lists where it does: WebP
+ * has no encoder of the library's own, and Safari's canvas writes none.
+ */
+const canvasEncodes = async format => (await capabilities()).images.includes(format);
+const NO_WEBP = "the browser's canvas encodes no WebP";
 
 /** The pixels the browser decodes from `bytes` of `type`. */
 async function decoded(bytes, type) {
@@ -62,7 +69,8 @@ describe(
             ['BMP', encodeBmp, 'image/bmp', 0],
             ['TIFF', encodeTiff, 'image/tiff', -1],
         ])
-            test(`${name} of a picture reads back as the picture`, async () => {
+            test(`${name} of a picture reads back as the picture`, async t => {
+                if (name === 'WebP' && !(await canvasEncodes('webp'))) return t.skip(NO_WEBP);
                 const picture = halves();
                 const bytes = await encode(picture, { quality: 0.95 });
                 assert(bytes instanceof Uint8Array);
@@ -90,7 +98,8 @@ describe(
             assert.deepEqual([back.width, back.height], [256, 128]);
         });
 
-        test('an animated WebP of two frames reads back as both', async () => {
+        test('an animated WebP of two frames reads back as both', async t => {
+            if (!(await canvasEncodes('webp'))) return t.skip(NO_WEBP);
             const encoder = new AnimatedWebpEncoder(48, 32, { loopCount: 2, quality: 0.9 });
             await encoder.addFrame(halves(), 100);
             const flipped = halves();
@@ -104,7 +113,8 @@ describe(
         });
 
         for (const to of ['jpeg', 'webp', 'bmp', 'ico'])
-            test(`a PNG converts to ${to} through the canvas`, async () => {
+            test(`a PNG converts to ${to} through the canvas`, async t => {
+                if (to === 'webp' && !(await canvasEncodes('webp'))) return t.skip(NO_WEBP);
                 const png = await encodePng(halves());
                 const { blob } = await convert(new Blob([png], { type: 'image/png' }), { to });
                 const type = {

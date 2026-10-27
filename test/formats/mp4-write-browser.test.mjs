@@ -10,6 +10,8 @@ import { createMuxer } from 'mediaforgejs/parts';
 const inBrowser = typeof document !== 'undefined';
 const RATE = 44100;
 const SECONDS = 2;
+/** The samples a frame of each codec holds. */
+const FRAME_SAMPLES = { mp3: 1152, aac: 1024 };
 
 /** Two seconds of a tone encoded as `codec` into a sink that cannot patch: fragmented MP4. */
 async function fragmentedTone(codec) {
@@ -35,6 +37,15 @@ async function fragmentedTone(codec) {
     });
     await muxer.finish();
     return memory.toUint8Array();
+}
+
+/** The samples the edit list of a one-track MP4 hides from its start: the encoder's priming. */
+function priming(bytes) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    for (let at = 4; at + 24 <= bytes.length; at++)
+        if (String.fromCharCode(...bytes.subarray(at, at + 4)) === 'elst')
+            return bytes[at + 4] === 1 ? Number(view.getBigInt64(at + 20)) : view.getInt32(at + 16);
+    return 0;
 }
 
 /** A muted audio element in the page, playing four times as fast; remove() it after. */
@@ -69,9 +80,11 @@ describe('mp4: fragmented sound in a browser', { skip: skipped }, () => {
                 });
                 await media.play();
                 const time = await ended;
-                // The sound, and at most its priming and the padding of its last frame on top.
+                // The sound, and at most its priming and the padding of its last frame on top
+                // (Apple's AAC encoder primes 2112 samples, others 1024 or none).
+                const most = SECONDS + (priming(bytes) + FRAME_SAMPLES[codec]) / RATE;
                 assert.ok(media.duration >= SECONDS - 0.01, `${media.duration} s`);
-                assert.ok(media.duration <= SECONDS + 0.05, `${media.duration} s`);
+                assert.ok(media.duration <= most, `${media.duration} s, at most ${most} s`);
                 assert.ok(Math.abs(time - media.duration) < 0.05, `ended at ${time} s`);
             } finally {
                 media.remove();
